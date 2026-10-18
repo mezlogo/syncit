@@ -40,9 +40,9 @@ For getting hand-on experienc this repository contains an example for you at `./
 
 ## Highlevel design
 
-1. Read `./port/model/model.go` - this is a list of the most valuable structures
-2. Read `./port/*/*.go` - this is an any level of real isolation
-3. Read `./adapter/yaml/dto.go` - this is expected models for files
+1. Read `./port/*/*.go` - this is an any level of real isolation
+2. Read `./coremodule/*/*.go` - this is a pure logic
+3. Read `./adapter/*/*.go` - this is a window to external libraries or os 
 
 ## Few words about project organization
 

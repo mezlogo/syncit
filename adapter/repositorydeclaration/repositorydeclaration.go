@@ -1,6 +1,19 @@
 package repositorydeclaration
 
-// This module contains REAL struct declarations for yaml using `gopkg.in/yaml.v3` lib
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+
+	port "basicgo/port/repositorydeclaration"
+)
 
 /*
 Exmaple for expected yaml - all fields MUST be specified.
@@ -19,7 +32,10 @@ tools:
 
 ```
 */
-type HostDeclarationYaml struct{}
+type HostDeclarationYaml struct {
+	Modules []string `yaml:"modules"`
+	Tools   []string `yaml:"tools"`
+}
 
 /*
 Exmaple for expected yaml - all fields are a map of string -> string[]
@@ -39,4 +55,153 @@ systemd:
 
 ```
 */
-type ModuleDeclarationYaml struct{}
+type ModuleDeclarationYaml map[string][]string
+
+// Adapter parses repository declarations from the filesystem and YAML.
+type Adapter struct{}
+
+// New creates a repository declaration adapter.
+func New() *Adapter {
+	return &Adapter{}
+}
+
+var _ port.RepositoryDeclarationPort = (*Adapter)(nil)
+
+// ParseRepository reads the host declaration, every module declaration, and
+// the relative file list for every declared module.
+func (a *Adapter) ParseRepository(ctx context.Context, command port.RepositoryDeclarationCommand) (port.RepositoryDeclarationResult, error) {
+	if err := ctx.Err(); err != nil {
+		return port.RepositoryDeclarationResult{}, err
+	}
+	if command.RepositoryPath == "" {
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: repository path is empty", port.ErrNoRepositoryFound)
+	}
+	if command.HostName == "" {
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: host name is empty", port.ErrNoHostFileFound)
+	}
+
+	repoPath, err := filepath.Abs(command.RepositoryPath)
+	if err != nil {
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("resolve repository path: %w", err)
+	}
+
+	info, err := os.Stat(repoPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: %s", port.ErrNoRepositoryFound, repoPath)
+		}
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("stat repository: %w", err)
+	}
+	if !info.IsDir() {
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: %s is not a directory", port.ErrNoRepositoryFound, repoPath)
+	}
+
+	hostFile := filepath.Join(repoPath, "hosts", command.HostName+".yaml")
+	hostData, err := os.ReadFile(hostFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: %s", port.ErrNoHostFileFound, hostFile)
+		}
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("read host declaration: %w", err)
+	}
+
+	var host HostDeclarationYaml
+	if err := yaml.Unmarshal(hostData, &host); err != nil {
+		return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: %s: %v", port.ErrBadHostFile, hostFile, err)
+	}
+
+	modules := make([]port.RepositoryDeclarationModule, 0, len(host.Modules))
+	for _, rawModuleName := range host.Modules {
+		if err := ctx.Err(); err != nil {
+			return port.RepositoryDeclarationResult{}, err
+		}
+
+		moduleName := strings.TrimSpace(rawModuleName)
+		if moduleName == "" {
+			continue
+		}
+
+		moduleDir := filepath.Join(repoPath, "modules", moduleName)
+		moduleInfo, err := os.Stat(moduleDir)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: %s", port.ErrDeclaredModuleNotFound, moduleDir)
+			}
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("stat module %q: %w", moduleName, err)
+		}
+		if !moduleInfo.IsDir() {
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: %s is not a directory", port.ErrDeclaredModuleNotFound, moduleDir)
+		}
+
+		declarations, err := readModuleDeclaration(moduleDir)
+		if err != nil {
+			return port.RepositoryDeclarationResult{}, err
+		}
+
+		files, err := collectDeclaredFiles(ctx, moduleDir)
+		if err != nil {
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("collect files for module %q: %w", moduleName, err)
+		}
+
+		modules = append(modules, port.RepositoryDeclarationModule{
+			ModuleName:                    moduleName,
+			ModuleAbsoulutePath:           moduleDir,
+			Declarations:                  map[string][]string(declarations),
+			RelativeToModuleDeclaredFiles: files,
+		})
+	}
+
+	return port.RepositoryDeclarationResult{Modules: modules}, nil
+}
+
+func readModuleDeclaration(moduleDir string) (ModuleDeclarationYaml, error) {
+	moduleFile := filepath.Join(moduleDir, "module.yaml")
+	data, err := os.ReadFile(moduleFile)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, fmt.Errorf("%w: %s", port.ErrModuleDeclarationFileNotFound, moduleFile)
+		}
+		return nil, fmt.Errorf("read module declaration: %w", err)
+	}
+
+	declarations := ModuleDeclarationYaml{}
+	if len(strings.TrimSpace(string(data))) == 0 {
+		return declarations, nil
+	}
+	if err := yaml.Unmarshal(data, &declarations); err != nil {
+		return nil, fmt.Errorf("%w: %s: %v", port.ErrBadModuleDeclaration, moduleFile, err)
+	}
+	return declarations, nil
+}
+
+func collectDeclaredFiles(ctx context.Context, moduleDir string) ([]string, error) {
+	files := make([]string, 0)
+	err := filepath.WalkDir(moduleDir, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+
+		relativePath, err := filepath.Rel(moduleDir, path)
+		if err != nil {
+			return err
+		}
+		relativePath = filepath.ToSlash(relativePath)
+		if relativePath == "module.yaml" {
+			return nil
+		}
+
+		files = append(files, relativePath)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(files)
+	return files, nil
+}

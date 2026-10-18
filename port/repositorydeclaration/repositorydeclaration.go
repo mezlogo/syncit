@@ -1,6 +1,9 @@
 package repositorydeclaration
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // Represents request for parsing repository
 // All repository MUST has following format:
@@ -52,5 +55,5 @@ var (
 
 // This module is a port - it isolates file system and yaml specific dependency from core logic
 type RepositoryDeclarationPort interface {
-	ParseRepository(command RepositoryDeclarationCommand) (RepositoryDeclarationResult, error)
+	ParseRepository(ctx context.Context, command RepositoryDeclarationCommand) (RepositoryDeclarationResult, error)
 }
