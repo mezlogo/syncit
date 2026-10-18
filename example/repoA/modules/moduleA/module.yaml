@@ -1,0 +1,5 @@
+pacman:
+  - nvim
+  - fish
+systemd:
+  - systemd-resolved.service

@@ -1,0 +1,4 @@
+modules:
+  - moduleA
+tools:
+  - config

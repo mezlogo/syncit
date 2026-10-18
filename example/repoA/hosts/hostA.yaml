@@ -1,0 +1,8 @@
+modules:
+  - moduleA
+  - moduleC
+tools:
+  - config
+  - etc
+  - services
+  - pacman

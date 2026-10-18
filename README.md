@@ -8,9 +8,31 @@ Use cases:
 - orginize all features by module for reusing by multiple different hosts AND for better coherent
 - review and migrate your system from single git repo
 
+## Idea behind the scene
+
+I want to declare in yaml and modules DESIRE configuration. Right now I'm totally fine with following capabilities:
+- enabling systemd services `sudo systemctl enable systemd-networkd.service`
+- enabling user services `systemctl --user enable ssh-agent.service`
+- installing pacman packages `sudo pacman -S --needed noto-fonts-emoji`
+- installing aur packages `yay -S leaf-markdown-viewer-bin`
+- in user space create dirs and links only files to repo `mkdir -p ~/.config/environment.d/; ln -s $REPO/modules/ssh-agent/config/environment.d/ssh-agent.conf $CONFIG/environment.d/ssh-agent.conf`
+- in root space create dirs with sudo and COPY files `sudo mkdir -p /etc/keyd/; sudo cp $REPO/modules/extended/etc/keyd/default.conf $ETC/keyd/default.conf
+
+Using only following tools we can restore almost everything in computer:
+- copy for root
+- link for user
+- install pacman, aur (or even apt)
+- enable systemd (root and user)
+
+## Example
+
+For getting hand-on experienc this repository contains an example for you at `./example/`
+
 ## Highlevel design
 
 1. Read `./port/model/model.go` - this is a list of the most valuable structures
+2. Read `./port/*/*.go` - this is an any level of real isolation
+3. Read `./adapter/yaml/dto.go` - this is expected models for files
 
 ## Few words about project organization
 
