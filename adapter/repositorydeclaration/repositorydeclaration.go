@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	port "basicgo/port/repositorydeclaration"
+	port "syncit/port/repositorydeclaration"
 )
 
 /*
