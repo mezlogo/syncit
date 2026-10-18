@@ -1,5 +1,7 @@
 package repositorydeclaration
 
+import "errors"
+
 // Represents request for parsing repository
 // All repository MUST has following format:
 // $repositoryRoot/hosts/$HOSTNAME.yaml - Each host is a file with declare modules and supported providers
@@ -37,7 +39,18 @@ type RepositoryDeclarationModule struct {
 	RelativeToModuleDeclaredFiles []string
 }
 
+// Sentinel errors returned (wrapped) by ParseRepository.
+// Match with errors.Is(err, repositorydeclaration.ErrX).
+var (
+	ErrNoRepositoryFound             = errors.New("NO_REPOSITORY_FOUND")
+	ErrNoHostFileFound               = errors.New("NO_HOST_FILE_FOUND")
+	ErrBadHostFile                   = errors.New("BAD_HOST_FILE")
+	ErrDeclaredModuleNotFound        = errors.New("DECLARED_MODULE_NOT_FOUND")
+	ErrModuleDeclarationFileNotFound = errors.New("MODULE_DECLARATION_FILE_NOT_FOUND")
+	ErrBadModuleDeclaration          = errors.New("BAD_MODULE_DECLARATION")
+)
+
 // This module is a port - it isolates file system and yaml specific dependency from core logic
 type RepositoryDeclarationPort interface {
-	ParseRepository(command RepositoryDeclarationCommand)
+	ParseRepository(command RepositoryDeclarationCommand) (RepositoryDeclarationResult, error)
 }
