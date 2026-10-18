@@ -8,6 +8,16 @@ Use cases:
 - orginize all features by module for reusing by multiple different hosts AND for better coherent
 - review and migrate your system from single git repo
 
+## Usage
+
+Common options for all subcommands:
+
+- `--host $HOSTNAME` - name of file `./hosts/$host.yaml` when no option specify take from env `$SYNCIT_HOST`, when no env read hostname (cat /etc/hostname)
+- `--repo $REPO_DIR` - string could contain multiple dir locations separated by ",". When not specify take from `$SYNCIT_REPO` - possible separated list of values. When none raise an error.
+- `--output-home` - optional dir name. Used for testing. Default is "$HOME"
+- `--output-root` - optional dir name. Used for testing. Default is "/"
+- `--only` - string could contain multiple tool names separated by ",". When empty - use all tools. `--only config --only 
+
 ## Idea behind the scene
 
 I want to declare in yaml and modules DESIRE configuration. Right now I'm totally fine with following capabilities:
