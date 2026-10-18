@@ -16,7 +16,11 @@ Common options for all subcommands:
 - `--repo $REPO_DIR` - string could contain multiple dir locations separated by ",". When not specify take from `$SYNCIT_REPO` - possible separated list of values. When none raise an error.
 - `--output-home` - optional dir name. Used for testing. Default is "$HOME"
 - `--output-root` - optional dir name. Used for testing. Default is "/"
-- `--only` - string could contain multiple tool names separated by ",". When empty - use all tools. `--only config --only 
+- `--only` - string could contain multiple tool names separated by ",". When empty - use all tools. `--only config --only
+
+### Command: report
+
+This command just prints declaration for given repository and hostname.
 
 ## Idea behind the scene
 
