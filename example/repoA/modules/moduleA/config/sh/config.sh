@@ -1,1 +1,1 @@
--- This is a fake sh config
+-- This is a fake sh config from repoA and moduleA

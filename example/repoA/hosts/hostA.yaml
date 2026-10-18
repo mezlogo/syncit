@@ -1,8 +1,9 @@
 modules:
   - moduleA
-  - moduleC
+  - moduleB
 tools:
-  - config
-  - etc
-  - services
+  - home
+  - repo
+  - systemd
   - pacman
+  - aur
