@@ -51,11 +51,11 @@ type MultipleDeclarationsError struct {
 
 func (e *MultipleDeclarationsError) Error() string {
 	return fmt.Sprintf(
-		"%s: overwrite=%q alreadyDeclared=%q resolvedTarget=%q",
+		"%s:\nFor given target file %s\nAlready declared file: %s\nConflict with: %s",
 		ErrMultipleDeclarations,
-		e.OverwriteAbsoluteFilePath,
-		e.AlreadyDeclaredAbsoluteFilePath,
 		e.ResolvedTargetAbsoluteFilePath,
+		e.AlreadyDeclaredAbsoluteFilePath,
+		e.OverwriteAbsoluteFilePath,
 	)
 }
 
@@ -75,11 +75,11 @@ type DeclaredDirFileConflictError struct {
 
 func (e *DeclaredDirFileConflictError) Error() string {
 	return fmt.Sprintf(
-		"%s: overwrite=%q alreadyDeclared=%q resolvedTarget=%q",
+		"%s:\nFor given target file %s\nAlready declared file: %s\nConflict with: %s",
 		ErrOneDeclaredDirOtherDeclaredFileConflict,
-		e.OverwriteAbsoluteFilePath,
-		e.AlreadyDeclaredAbsoluteFilePath,
 		e.ResolvedTargetAbsoluteFilePath,
+		e.AlreadyDeclaredAbsoluteFilePath,
+		e.OverwriteAbsoluteFilePath,
 	)
 }
 
@@ -98,7 +98,7 @@ type DeclaredFileNotFoundInFileConfigurationMappingError struct {
 
 func (e *DeclaredFileNotFoundInFileConfigurationMappingError) Error() string {
 	return fmt.Sprintf(
-		"%s: moduleFile=%q relativeFile=%q",
+		"%s:\nModule file: %s\nRelative file: %s",
 		ErrDeclaredFileNotFoundInFileConfigurationMapping,
 		e.AbsoluteModuleFilePath,
 		e.RelativeFilePath,
