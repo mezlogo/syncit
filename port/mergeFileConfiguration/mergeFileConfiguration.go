@@ -34,8 +34,9 @@ type ResolvedFileConfiguration struct {
 
 // Error codes returned (wrapped) by MergeFiles.
 var (
-	ErrMultipleDeclarations                    = errors.New("MULTIPLE_DECLARATIONS")
-	ErrOneDeclaredDirOtherDeclaredFileConflict = errors.New("ONE_DECLARED_DIR_OTHER_DECLARED_FILE_CONFLICT")
+	ErrMultipleDeclarations                           = errors.New("MULTIPLE_DECLARATIONS")
+	ErrOneDeclaredDirOtherDeclaredFileConflict        = errors.New("ONE_DECLARED_DIR_OTHER_DECLARED_FILE_CONFLICT")
+	ErrDeclaredFileNotFoundInFileConfigurationMapping = errors.New("DECLARED_FILE_NOT_FOUND_IN_FILE_CONFIGURATION_MAPPING")
 )
 
 // MultipleDeclarationsError reports the same resolved target declared more than once.
@@ -84,4 +85,26 @@ func (e *DeclaredDirFileConflictError) Error() string {
 
 func (e *DeclaredDirFileConflictError) Unwrap() error {
 	return ErrOneDeclaredDirOtherDeclaredFileConflict
+}
+
+// DeclaredFileNotFoundInFileConfigurationMappingError reports a module file whose top-level directory
+// is not present in the resolved file configuration mapping.
+type DeclaredFileNotFoundInFileConfigurationMappingError struct {
+	// AbsoluteModuleFilePath is the absolute path to the declared file inside the repository.
+	AbsoluteModuleFilePath string
+	// RelativeFilePath is the file path relative to the module root.
+	RelativeFilePath string
+}
+
+func (e *DeclaredFileNotFoundInFileConfigurationMappingError) Error() string {
+	return fmt.Sprintf(
+		"%s: moduleFile=%q relativeFile=%q",
+		ErrDeclaredFileNotFoundInFileConfigurationMapping,
+		e.AbsoluteModuleFilePath,
+		e.RelativeFilePath,
+	)
+}
+
+func (e *DeclaredFileNotFoundInFileConfigurationMappingError) Unwrap() error {
+	return ErrDeclaredFileNotFoundInFileConfigurationMapping
 }
