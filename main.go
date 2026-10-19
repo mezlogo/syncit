@@ -10,8 +10,10 @@ import (
 	repositorydeclarationadapter "syncit/adapter/repoAO"
 	reporeportadapter "syncit/adapter/repoReport"
 	reportcmd "syncit/cmd/report"
+	synccmd "syncit/cmd/sync"
 	difffileconfiguration "syncit/coremodule/diffFileConfiguration"
 	mergefileconfiguration "syncit/coremodule/mergeFileConfiguration"
+	syncfileconfiguration "syncit/coremodule/syncFileConfiguration"
 )
 
 func main() {
@@ -21,6 +23,7 @@ func main() {
 
 	mergeUseCase := mergefileconfiguration.New()
 	diffUseCase := difffileconfiguration.New(fileSystemPort)
+	syncUseCase := syncfileconfiguration.New(fileSystemPort)
 
 	rootCmd := &cobra.Command{
 		Use:           "syncit",
@@ -29,6 +32,7 @@ func main() {
 		SilenceUsage:  true,
 	}
 	rootCmd.AddCommand(reportcmd.New(declarationPort, mergeUseCase, diffUseCase, reportPort))
+	rootCmd.AddCommand(synccmd.New(declarationPort, mergeUseCase, syncUseCase, reportPort))
 
 	if err := rootCmd.Execute(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)

@@ -9,6 +9,9 @@ import (
 	difffileconfiguration "syncit/port/diffFileConfiguration"
 	mergeport "syncit/port/mergeFileConfiguration"
 	repoao "syncit/port/repoAO"
+
+	syncfileconfiguration "syncit/port/syncFileConfiguration"
+
 	port "syncit/port/repoReport"
 )
 
@@ -135,4 +138,46 @@ func reportMergedFiles(title string, files []mergeport.ResolvedFile) {
 		rows = append(rows, []string{file.AbsoluteModuleFilePath, file.AbsoluteHostFilePath})
 	}
 	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
+// ReportSync prints a colorized table of per-file sync decisions.
+func (a *Adapter) ReportSync(repoPath string, decisions []syncfileconfiguration.SyncFileDecision, mergeErr error) {
+	pterm.DefaultSection.WithLevel(1).Println("sync repository: " + repoPath)
+
+	if mergeErr != nil {
+		pterm.Error.Println(mergeErr)
+	}
+	if len(decisions) == 0 {
+		pterm.Println("[]")
+		return
+	}
+
+	rows := pterm.TableData{{"decision", "declared", "target", "error"}}
+	for _, d := range decisions {
+		errStr := ""
+		if d.Err != nil {
+			errStr = d.Err.Error()
+		}
+		rows = append(rows, []string{
+			colorizeSyncCode(d.Code),
+			d.ResolvedFile.AbsoluteModuleFilePath,
+			d.ResolvedFile.AbsoluteHostFilePath,
+			errStr,
+		})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
+func colorizeSyncCode(code syncfileconfiguration.SyncFileDecisionCode) string {
+	switch code {
+	case syncfileconfiguration.SyncFileDecisionCodeLinked, syncfileconfiguration.SyncFileDecisionCodeRecreated:
+		return colorGreen + string(code) + colorReset
+	case syncfileconfiguration.SyncFileDecisionCodeSkippedUpToDate:
+		return colorCyan + string(code) + colorReset
+	case syncfileconfiguration.SyncFileDecisionCodeSkippedExisting, syncfileconfiguration.SyncFileDecisionCodeSkippedDirectory:
+		return colorYellow + string(code) + colorReset
+	case syncfileconfiguration.SyncFileDecisionCodeFailed:
+		return colorRed + string(code) + colorReset
+	}
+	return string(code)
 }

@@ -18,6 +18,15 @@ type FileSystemPort interface {
 	// when file for root has same size we need to compare thiere content
 	// return raw buffer. IF possible don't use sudo
 	ReadRawFileContent(absoluteFilePath string) ([]byte, error)
+
+	// EnsureDirRecursive creates the directory and any missing parents.
+	EnsureDirRecursive(absoluteDirPath string) error
+
+	// CreateUserSymbolicLink creates a symlink at absoluteLinkPath pointing to absoluteTargetPath.
+	CreateUserSymbolicLink(absoluteTargetPath, absoluteLinkPath string) error
+
+	// RemoveUserFile removes a file or symlink at absoluteFilePath. Refuses to remove directories.
+	RemoveUserFile(absoluteFilePath string) error
 }
 
 type FileSystemStatCode string

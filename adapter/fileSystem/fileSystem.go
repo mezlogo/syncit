@@ -1,6 +1,8 @@
 package filesystem
 
 import (
+	"fmt"
+
 	"os"
 
 	port "syncit/port/fileSystem"
@@ -72,4 +74,23 @@ func (a *Adapter) GetFileSizeInBytesForRootFile(absoluteFilePath string) (int64,
 // ReadRawFileContent returns the raw content of a file.
 func (a *Adapter) ReadRawFileContent(absoluteFilePath string) ([]byte, error) {
 	return os.ReadFile(absoluteFilePath)
+}
+
+func (a *Adapter) EnsureDirRecursive(absoluteDirPath string) error {
+	return os.MkdirAll(absoluteDirPath, 0o755)
+}
+
+func (a *Adapter) CreateUserSymbolicLink(absoluteTargetPath, absoluteLinkPath string) error {
+	return os.Symlink(absoluteTargetPath, absoluteLinkPath)
+}
+
+func (a *Adapter) RemoveUserFile(absoluteFilePath string) error {
+	info, err := os.Lstat(absoluteFilePath)
+	if err != nil {
+		return err
+	}
+	if info.IsDir() {
+		return fmt.Errorf("refusing to remove directory: %s", absoluteFilePath)
+	}
+	return os.Remove(absoluteFilePath)
 }
