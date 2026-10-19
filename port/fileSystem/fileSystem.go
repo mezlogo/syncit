@@ -17,6 +17,8 @@ const (
 )
 
 type FileSystemStat struct {
-	absoluteFilePath string
-	Code             FileSystemStatCode
+	// AbsoluteFilePath is the absolute path that was statted.
+	AbsoluteFilePath string
+
+	Code FileSystemStatCode
 }
