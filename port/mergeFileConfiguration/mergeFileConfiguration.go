@@ -36,4 +36,8 @@ TODO: write here error hierarchy with example in comments and following fields:
 - resolvedTargetAbsoluteFilePath
 
 declared files WITHOUT fileConfigurationMapping
+
+Codes:
+1. MULTIPLE_DECLARATIONS
+2. ONE_DECLARED_DIR_OTHER_DECLARED_FILE_CONFLICT
 */
