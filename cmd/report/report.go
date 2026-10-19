@@ -10,21 +10,24 @@ import (
 
 	difffileconfiguration "syncit/port/diffFileConfiguration"
 	mergefileconfiguration "syncit/port/mergeFileConfiguration"
+	processhandlers "syncit/port/processHandlers"
 	repositorydeclaration "syncit/port/repoAO"
 	reporeport "syncit/port/repoReport"
 	toolsconfiguraion "syncit/port/toolsConfiguraion"
 )
 
-// New creates the report command. It depends only on ports.
-func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergePort mergefileconfiguration.MergeFileConfigurationUseCase, diffPort difffileconfiguration.DiffFileConfigurationUseCase, reportPort reporeport.RepoReportUseCase) *cobra.Command {
-
+func New(
+	declarationPort repositorydeclaration.RepositoryDeclarationPort,
+	mergePort mergefileconfiguration.MergeFileConfigurationUseCase,
+	diffPort difffileconfiguration.DiffFileConfigurationUseCase,
+	processPort processhandlers.ProcessHandlersUseCase,
+	reportPort reporeport.RepoReportUseCase,
+) *cobra.Command {
 	var repositories []string
 	var hostName string
-	var merged bool
-	var diff bool
-	var outputHome string
-	var outputRoot string
-	var includeUser, includeRoot bool
+	var merged, diff bool
+	var outputHome, outputRoot string
+	var includeUser, includeRoot, includeProcess bool
 
 	defaultRepositories := splitCommaSeparated(os.Getenv("SYNCIT_REPO"))
 	defaultHostName := strings.TrimSpace(os.Getenv("SYNCIT_HOST"))
@@ -33,7 +36,6 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 			defaultHostName = hostname
 		}
 	}
-
 	defaultOutputHome := strings.TrimSpace(os.Getenv("HOME"))
 	if defaultOutputHome == "" {
 		if home, err := os.UserHomeDir(); err == nil {
@@ -44,7 +46,7 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 
 	cmd := &cobra.Command{
 		Use:   "report",
-		Short: "Print repository declaration for a host",
+		Short: "Print repository declaration, merged files, diff or process list",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			repos := normalizeList(repositories)
 			if len(repos) == 0 {
@@ -55,8 +57,9 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 				return errors.New("host is required: use --host or SYNCIT_HOST")
 			}
 
-			if merged || diff {
+			if merged || diff || includeProcess {
 				modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
+				mergedHandlers := map[string]string{}
 				for _, repo := range repos {
 					result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
 						RepositoryPath: repo,
@@ -66,12 +69,28 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 						return fmt.Errorf("parse repository %q: %w", repo, err)
 					}
 					modules = append(modules, result.Modules...)
+
+					handlers, err := declarationPort.ParseHandlers(repo)
+					if err != nil {
+						return fmt.Errorf("parse handlers %q: %w", repo, err)
+					}
+					for k, v := range handlers {
+						mergedHandlers[k] = v
+					}
 				}
 
-				mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
-				processUser := includeUser || !includeRoot
-				processRoot := includeRoot || !includeUser
+				mergedDeclarations := map[string][]string{}
+				for _, m := range modules {
+					for k, vals := range m.Declarations {
+						mergedDeclarations[k] = append(mergedDeclarations[k], vals...)
+					}
+				}
 
+				anyInclude := includeUser || includeRoot || includeProcess
+				processUser := includeUser || !anyInclude
+				processRoot := includeRoot || !anyInclude
+
+				mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
 				resolved, mergeErr := mergePort.MergeFiles(modules, mapping)
 
 				if merged {
@@ -94,6 +113,17 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 					}
 				}
 
+				if includeProcess {
+					processCmd := processhandlers.ProcessHandlersCommand{
+						Handlers:     mergedHandlers,
+						Declarations: mergedDeclarations,
+						DryRun:       true,
+					}
+					pre := processPort.ProcessPreFileHandlers(processCmd)
+					reportPort.ReportProcess(strings.Join(repos, ", "), pre.Decisions, nil)
+					post := processPort.ProcessPostFileHandlers(processCmd)
+					reportPort.ReportProcess(strings.Join(repos, ", "), post.Decisions, nil)
+				}
 				return nil
 			}
 
@@ -107,21 +137,19 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 				}
 				reportPort.ReportRepo(repo, result.Modules)
 			}
-
 			return nil
-
 		},
 	}
 
 	cmd.Flags().StringSliceVar(&repositories, "repo", defaultRepositories, "repository directories separated by comma; defaults to $SYNCIT_REPO")
 	cmd.Flags().StringVar(&hostName, "host", defaultHostName, "host declaration name; defaults to $SYNCIT_HOST or os hostname")
-
 	cmd.Flags().BoolVar(&merged, "merged", false, "merge file configuration and report resolved files and errors")
-	cmd.Flags().BoolVar(&diff, "diff", false, "calculate and report diff for resolved user files")
+	cmd.Flags().BoolVar(&diff, "diff", false, "calculate and report diff for resolved files")
 	cmd.Flags().StringVar(&outputHome, "output-home", defaultOutputHome, "home directory used for merged file mapping; defaults to $HOME")
 	cmd.Flags().StringVar(&outputRoot, "output-root", defaultOutputRoot, "root directory used for merged file mapping; defaults to /")
 	cmd.Flags().BoolVar(&includeUser, "include-user", false, "process user file configuration when any include flag is set")
 	cmd.Flags().BoolVar(&includeRoot, "include-root", false, "process root file configuration when any include flag is set")
+	cmd.Flags().BoolVar(&includeProcess, "include-process", false, "report process handler commands (dry-run) when any include flag is set")
 
 	return cmd
 }

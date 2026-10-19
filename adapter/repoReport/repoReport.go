@@ -10,6 +10,7 @@ import (
 	mergeport "syncit/port/mergeFileConfiguration"
 	repoao "syncit/port/repoAO"
 
+	processhandlers "syncit/port/processHandlers"
 	syncfileconfiguration "syncit/port/syncFileConfiguration"
 
 	port "syncit/port/repoReport"
@@ -157,6 +158,44 @@ func (a *Adapter) ReportSyncRoot(repoPath string, decisions []syncfileconfigurat
 		})
 	}
 	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
+func (a *Adapter) ReportProcess(repoPath string, decisions []processhandlers.ProcessDecision, mergeErr error) {
+	pterm.DefaultSection.WithLevel(1).Println("process repository: " + repoPath)
+	if mergeErr != nil {
+		pterm.Error.Println(mergeErr)
+	}
+	if len(decisions) == 0 {
+		pterm.Println("[]")
+		return
+	}
+	rows := pterm.TableData{{"tool", "values", "command", "decision", "error"}}
+	for _, d := range decisions {
+		errStr := ""
+		if d.Err != nil {
+			errStr = d.Err.Error()
+		}
+		rows = append(rows, []string{
+			d.ToolName,
+			strings.Join(d.Values, " "),
+			d.Command,
+			colorizeProcessCode(d.Code),
+			errStr,
+		})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
+func colorizeProcessCode(code processhandlers.ProcessDecisionCode) string {
+	switch code {
+	case processhandlers.ProcessDecisionCodeExecuted:
+		return colorGreen + string(code) + colorReset
+	case processhandlers.ProcessDecisionCodeDryRun:
+		return colorCyan + string(code) + colorReset
+	case processhandlers.ProcessDecisionCodeFailed:
+		return colorRed + string(code) + colorReset
+	}
+	return string(code)
 }
 
 func colorizeDiffCode(code difffileconfiguration.DiffFileDecisionCode) string {

@@ -3,6 +3,7 @@ package repoReport
 import (
 	difffileconfiguration "syncit/port/diffFileConfiguration"
 	mergefileconfiguration "syncit/port/mergeFileConfiguration"
+	processhandlers "syncit/port/processHandlers"
 	repoao "syncit/port/repoAO"
 
 	syncfileconfiguration "syncit/port/syncFileConfiguration"
@@ -29,4 +30,7 @@ type RepoReportUseCase interface {
 
 	// ReportSyncRoot reports sync decisions for root-space files with colorized decision codes.
 	ReportSyncRoot(repoPath string, decisions []syncfileconfiguration.SyncFileDecision, mergeErr error)
+
+	// ReportProcess reports process decisions (dry-run or executed) with colorized codes.
+	ReportProcess(repoPath string, decisions []processhandlers.ProcessDecision, mergeErr error)
 }
