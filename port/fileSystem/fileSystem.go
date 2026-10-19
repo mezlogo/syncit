@@ -7,7 +7,16 @@ type FileSystemPort interface {
 	StatUserSpace(userAbsouteFilePaths []string) []FileSystemStat
 }
 
+type FileSystemStatCode string
+
+const (
+	FileSystemStatCodeFileNotExist FileSystemStatCode = "FILE_NOT_EXIST"
+	FileSystemStatCodeLink         FileSystemStatCode = "LINK"
+	FileSystemStatCodeFile         FileSystemStatCode = "FILE"
+	FileSystemStatCodeDirectory    FileSystemStatCode = "DIRECTORY"
+)
+
 type FileSystemStat struct {
 	absoluteFilePath string
-	// TODO: declare code: FILE_NOT_EXIST, LINK_TO, FILE, DIRECTORY
+	Code             FileSystemStatCode
 }
