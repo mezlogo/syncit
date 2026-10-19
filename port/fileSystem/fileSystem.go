@@ -4,7 +4,13 @@ package filesystem
 
 type FileSystemPort interface {
 	// This method works with user space, not sudo or root required
-	StatUserSpace(userAbsouteFilePaths []string) []FileSystemStat
+	CalculateStatForUserFiles(userAbsouteFilePaths []string) []FileSystemStat
+
+	// port for simple os call
+	GetLinkForUserFile(absoluteFilePath string) (string, error)
+
+	// get file size in bytes for eqaul test
+	GetFileSizeInBytesForUserFile(absoluteFilePath string) (int64, error)
 }
 
 type FileSystemStatCode string
