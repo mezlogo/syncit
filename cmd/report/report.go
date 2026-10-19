@@ -24,6 +24,7 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 	var diff bool
 	var outputHome string
 	var outputRoot string
+	var includeUser, includeRoot bool
 
 	defaultRepositories := splitCommaSeparated(os.Getenv("SYNCIT_REPO"))
 	defaultHostName := strings.TrimSpace(os.Getenv("SYNCIT_HOST"))
@@ -68,15 +69,29 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 				}
 
 				mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
+				processUser := includeUser || !includeRoot
+				processRoot := includeRoot || !includeUser
+
 				resolved, mergeErr := mergePort.MergeFiles(modules, mapping)
 
 				if merged {
-					reportPort.ReportMergedRepo(strings.Join(repos, ", "), resolved, mergeErr)
+					filtered := mergefileconfiguration.ResolvedFileConfiguration{}
+					if processUser {
+						filtered.UserFiles = resolved.UserFiles
+					}
+					if processRoot {
+						filtered.RootFiles = resolved.RootFiles
+					}
+					reportPort.ReportMergedRepo(strings.Join(repos, ", "), filtered, mergeErr)
 				}
 
 				if diff {
-					decisions := diffPort.CalculateDiffForUserFiles(resolved.UserFiles)
-					reportPort.ReportDiff(strings.Join(repos, ", "), decisions, mergeErr)
+					if processUser {
+						reportPort.ReportDiff(strings.Join(repos, ", "), diffPort.CalculateDiffForUserFiles(resolved.UserFiles), mergeErr)
+					}
+					if processRoot {
+						reportPort.ReportDiffRoot(strings.Join(repos, ", "), diffPort.CalculateDiffForRootFiles(resolved.RootFiles), mergeErr)
+					}
 				}
 
 				return nil
@@ -105,6 +120,8 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 	cmd.Flags().BoolVar(&diff, "diff", false, "calculate and report diff for resolved user files")
 	cmd.Flags().StringVar(&outputHome, "output-home", defaultOutputHome, "home directory used for merged file mapping; defaults to $HOME")
 	cmd.Flags().StringVar(&outputRoot, "output-root", defaultOutputRoot, "root directory used for merged file mapping; defaults to /")
+	cmd.Flags().BoolVar(&includeUser, "include-user", false, "process user file configuration when any include flag is set")
+	cmd.Flags().BoolVar(&includeRoot, "include-root", false, "process root file configuration when any include flag is set")
 
 	return cmd
 }

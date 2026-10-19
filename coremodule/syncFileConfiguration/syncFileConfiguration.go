@@ -1,7 +1,9 @@
 package syncfileconfiguration
 
 import (
+	"bytes"
 	"fmt"
+
 	"path"
 
 	filesystem "syncit/port/fileSystem"
@@ -112,4 +114,96 @@ func fail(decision port.SyncFileDecision, err error) port.SyncFileDecision {
 	decision.Code = port.SyncFileDecisionCodeFailed
 	decision.Err = err
 	return decision
+}
+
+func (u *UseCase) SyncRootFiles(files []mergefileconfiguration.ResolvedFile, options port.SyncOptions) []port.SyncFileDecision {
+	decisions := make([]port.SyncFileDecision, len(files))
+	for i, file := range files {
+		decisions[i] = u.syncOneRootFile(file, options)
+	}
+	return decisions
+}
+
+func (u *UseCase) syncOneRootFile(file mergefileconfiguration.ResolvedFile, options port.SyncOptions) port.SyncFileDecision {
+	decision := port.SyncFileDecision{ResolvedFile: file}
+	stat := u.statRootFile(file.AbsoluteHostFilePath)
+
+	switch stat.Code {
+	case filesystem.FileSystemStatCodeFileNotExist:
+		if err := u.createRootCopy(file); err != nil {
+			return fail(decision, err)
+		}
+		decision.Code = port.SyncFileDecisionCodeCopied
+		return decision
+	case filesystem.FileSystemStatCodeDirectory:
+		decision.Code = port.SyncFileDecisionCodeSkippedDirectory
+		return decision
+	case filesystem.FileSystemStatCodeFile:
+		equal, err := u.rootFileEqualsDeclared(file.AbsoluteHostFilePath, file.AbsoluteModuleFilePath)
+		if err != nil {
+			return fail(decision, err)
+		}
+		if equal && !options.Reset {
+			decision.Code = port.SyncFileDecisionCodeSkippedUpToDate
+			return decision
+		}
+		if equal && options.Reset {
+			return u.recreateRootCopy(file, decision)
+		}
+		if !options.Overwrite {
+			decision.Code = port.SyncFileDecisionCodeSkippedExisting
+			return decision
+		}
+		return u.recreateRootCopy(file, decision)
+	}
+	return fail(decision, fmt.Errorf("unknown root stat code: %s", stat.Code))
+}
+
+func (u *UseCase) recreateRootCopy(file mergefileconfiguration.ResolvedFile, decision port.SyncFileDecision) port.SyncFileDecision {
+	if err := u.fileSystem.RemoveRootFile(file.AbsoluteHostFilePath); err != nil {
+		return fail(decision, err)
+	}
+	if err := u.createRootCopy(file); err != nil {
+		return fail(decision, err)
+	}
+	decision.Code = port.SyncFileDecisionCodeRecreated
+	return decision
+}
+
+func (u *UseCase) createRootCopy(file mergefileconfiguration.ResolvedFile) error {
+	if err := u.fileSystem.EnsureRootDirRecursive(path.Dir(file.AbsoluteHostFilePath)); err != nil {
+		return err
+	}
+	return u.fileSystem.CopyFileToRoot(file.AbsoluteModuleFilePath, file.AbsoluteHostFilePath)
+}
+
+func (u *UseCase) statRootFile(p string) filesystem.FileSystemStat {
+	stats := u.fileSystem.CalculateStatForRootFiles([]string{p})
+	if len(stats) == 0 {
+		return filesystem.FileSystemStat{AbsoluteFilePath: p, Code: filesystem.FileSystemStatCodeFileNotExist}
+	}
+	return stats[0]
+}
+
+func (u *UseCase) rootFileEqualsDeclared(targetPath, declaredPath string) (bool, error) {
+	targetSize, err := u.fileSystem.GetFileSizeInBytesForRootFile(targetPath)
+	if err != nil {
+		return false, err
+	}
+	declaredSize, err := u.fileSystem.GetFileSizeInBytesForRootFile(declaredPath)
+	if err != nil {
+		return false, err
+	}
+	if targetSize != declaredSize {
+		return false, nil
+	}
+	targetContent, err := u.fileSystem.ReadRawFileContent(targetPath)
+	if err != nil {
+		return false, err
+	}
+	declaredContent, err := u.fileSystem.ReadRawFileContent(declaredPath)
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(targetContent, declaredContent), nil
 }

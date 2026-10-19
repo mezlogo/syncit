@@ -10,8 +10,11 @@ import (
 )
 
 type fakeFS struct {
-	stats map[string]filesystem.FileSystemStat
-	links map[string]string
+	stats        map[string]filesystem.FileSystemStat
+	links        map[string]string
+	rootSizes    map[string]int64
+	rootContents map[string][]byte
+	copiedLinks  map[string]string
 
 	createdLinks map[string]string
 	removedFiles []string
@@ -23,6 +26,10 @@ func newFakeFS() *fakeFS {
 	return &fakeFS{
 		stats:        map[string]filesystem.FileSystemStat{},
 		links:        map[string]string{},
+		rootSizes:    map[string]int64{},
+		rootContents: map[string][]byte{},
+		copiedLinks:  map[string]string{},
+
 		createdLinks: map[string]string{},
 	}
 }
@@ -45,8 +52,18 @@ func (f *fakeFS) GetLinkForUserFile(p string) (string, error) {
 	}
 	return "", errors.New("not a link")
 }
-func (f *fakeFS) GetFileSizeInBytesForRootFile(string) (int64, error) { return 0, nil }
-func (f *fakeFS) ReadRawFileContent(string) ([]byte, error)           { return nil, nil }
+func (f *fakeFS) GetFileSizeInBytesForRootFile(p string) (int64, error) {
+	if size, ok := f.rootSizes[p]; ok {
+		return size, nil
+	}
+	return 0, nil
+}
+func (f *fakeFS) ReadRawFileContent(p string) ([]byte, error) {
+	if content, ok := f.rootContents[p]; ok {
+		return content, nil
+	}
+	return nil, nil
+}
 
 func (f *fakeFS) EnsureDirRecursive(string) error { return nil }
 func (f *fakeFS) CreateUserSymbolicLink(target, linkPath string) error {
@@ -57,6 +74,16 @@ func (f *fakeFS) CreateUserSymbolicLink(target, linkPath string) error {
 	return nil
 }
 func (f *fakeFS) RemoveUserFile(p string) error {
+	f.removedFiles = append(f.removedFiles, p)
+	return nil
+}
+
+func (f *fakeFS) EnsureRootDirRecursive(string) error { return nil }
+func (f *fakeFS) CopyFileToRoot(source, target string) error {
+	f.copiedLinks[target] = source
+	return nil
+}
+func (f *fakeFS) RemoveRootFile(p string) error {
 	f.removedFiles = append(f.removedFiles, p)
 	return nil
 }

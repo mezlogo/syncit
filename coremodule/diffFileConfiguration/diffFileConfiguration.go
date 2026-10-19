@@ -1,6 +1,7 @@
 package difffileconfiguration
 
 import (
+	"bytes"
 	"path"
 
 	port "syncit/port/diffFileConfiguration"
@@ -81,4 +82,70 @@ func (u *UseCase) linkPointsToDeclared(linkPath string, declaredPath string) boo
 	}
 
 	return path.Clean(resolvedTarget) == path.Clean(declaredPath)
+}
+
+func (u *UseCase) CalculateDiffForRootFiles(rootConfigurationFiles []mergefileconfiguration.ResolvedFile) []port.DiffFileDecision {
+	decisions := make([]port.DiffFileDecision, len(rootConfigurationFiles))
+	if len(rootConfigurationFiles) == 0 {
+		return decisions
+	}
+
+	targetPaths := make([]string, len(rootConfigurationFiles))
+	for i, file := range rootConfigurationFiles {
+		targetPaths[i] = file.AbsoluteHostFilePath
+	}
+
+	stats := u.fileSystem.CalculateStatForRootFiles(targetPaths)
+	statByPath := make(map[string]filesystem.FileSystemStat, len(stats))
+	for _, stat := range stats {
+		statByPath[stat.AbsoluteFilePath] = stat
+	}
+
+	for i, file := range rootConfigurationFiles {
+		decision := port.DiffFileDecision{ResolvedFile: file}
+		stat, ok := statByPath[file.AbsoluteHostFilePath]
+		if !ok || stat.Code == filesystem.FileSystemStatCodeFileNotExist {
+			decision.Code = port.DiffFileDecisionCodeTargetFileNotFound
+			decisions[i] = decision
+			continue
+		}
+		switch stat.Code {
+		case filesystem.FileSystemStatCodeDirectory:
+			decision.Code = port.DiffFileDecisionCodeTargetFileIsDirectory
+		case filesystem.FileSystemStatCodeFile:
+			equal, err := u.rootFileEqualsDeclared(file.AbsoluteHostFilePath, file.AbsoluteModuleFilePath)
+			if err != nil || !equal {
+				decision.Code = port.DiffFileDecisionCodeTargetFileNotEqualToDeclared
+			} else {
+				decision.Code = port.DiffFileDecisionCodeTargetFileEqualToDeclared
+			}
+		default:
+			decision.Code = port.DiffFileDecisionCodeTargetFileNotEqualToDeclared
+		}
+		decisions[i] = decision
+	}
+	return decisions
+}
+
+func (u *UseCase) rootFileEqualsDeclared(targetPath, declaredPath string) (bool, error) {
+	targetSize, err := u.fileSystem.GetFileSizeInBytesForRootFile(targetPath)
+	if err != nil {
+		return false, err
+	}
+	declaredSize, err := u.fileSystem.GetFileSizeInBytesForRootFile(declaredPath)
+	if err != nil {
+		return false, err
+	}
+	if targetSize != declaredSize {
+		return false, nil
+	}
+	targetContent, err := u.fileSystem.ReadRawFileContent(targetPath)
+	if err != nil {
+		return false, err
+	}
+	declaredContent, err := u.fileSystem.ReadRawFileContent(declaredPath)
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(targetContent, declaredContent), nil
 }

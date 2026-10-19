@@ -2,8 +2,10 @@ package filesystem
 
 import (
 	"fmt"
-
 	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	port "syncit/port/fileSystem"
 )
@@ -62,18 +64,31 @@ func (a *Adapter) GetLinkForUserFile(absoluteFilePath string) (string, error) {
 	return os.Readlink(absoluteFilePath)
 }
 
-// GetFileSizeInBytesForRootFile returns the size in bytes for a root-space file.
+// GetFileSizeInBytesForRootFile — try as user, escalate on permission error
 func (a *Adapter) GetFileSizeInBytesForRootFile(absoluteFilePath string) (int64, error) {
 	info, err := os.Stat(absoluteFilePath)
+	if err == nil {
+		return info.Size(), nil
+	}
+	if !os.IsPermission(err) {
+		return 0, err
+	}
+	out, err := runRootCommandOutput("stat", "-c", "%s", absoluteFilePath)
 	if err != nil {
 		return 0, err
 	}
-	return info.Size(), nil
+	return strconv.ParseInt(strings.TrimSpace(string(out)), 10, 64)
 }
 
-// ReadRawFileContent returns the raw content of a file.
 func (a *Adapter) ReadRawFileContent(absoluteFilePath string) ([]byte, error) {
-	return os.ReadFile(absoluteFilePath)
+	data, err := os.ReadFile(absoluteFilePath)
+	if err == nil {
+		return data, nil
+	}
+	if !os.IsPermission(err) {
+		return nil, err
+	}
+	return runRootCommandOutput("cat", absoluteFilePath)
 }
 
 func (a *Adapter) EnsureDirRecursive(absoluteDirPath string) error {
@@ -93,4 +108,38 @@ func (a *Adapter) RemoveUserFile(absoluteFilePath string) error {
 		return fmt.Errorf("refusing to remove directory: %s", absoluteFilePath)
 	}
 	return os.Remove(absoluteFilePath)
+}
+
+func (a *Adapter) EnsureRootDirRecursive(absoluteDirPath string) error {
+	return runRootCommand("mkdir", "-p", absoluteDirPath)
+}
+
+func (a *Adapter) CopyFileToRoot(sourceAbsoluteFilePath, targetAbsoluteFilePath string) error {
+	return runRootCommand("cp", sourceAbsoluteFilePath, targetAbsoluteFilePath)
+}
+
+func (a *Adapter) RemoveRootFile(absoluteFilePath string) error {
+	return runRootCommand("rm", "-f", absoluteFilePath)
+}
+
+func runRootCommand(name string, args ...string) error {
+	cmd := buildRootCommand(name, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func runRootCommandOutput(name string, args ...string) ([]byte, error) {
+	cmd := buildRootCommand(name, args...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	return cmd.Output()
+}
+
+func buildRootCommand(name string, args ...string) *exec.Cmd {
+	if os.Geteuid() == 0 {
+		return exec.Command(name, args...)
+	}
+	return exec.Command("sudo", append([]string{name}, args...)...)
 }

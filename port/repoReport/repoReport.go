@@ -23,4 +23,10 @@ type RepoReportUseCase interface {
 
 	// ReportSync reports sync decisions with colorized decision codes.
 	ReportSync(repoPath string, decisions []syncfileconfiguration.SyncFileDecision, mergeErr error)
+
+	// ReportDiffRoot reports diff decisions for root-space files with colorized decision codes.
+	ReportDiffRoot(repoPath string, decisions []difffileconfiguration.DiffFileDecision, mergeErr error)
+
+	// ReportSyncRoot reports sync decisions for root-space files with colorized decision codes.
+	ReportSyncRoot(repoPath string, decisions []syncfileconfiguration.SyncFileDecision, mergeErr error)
 }

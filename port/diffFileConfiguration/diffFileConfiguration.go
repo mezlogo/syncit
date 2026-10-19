@@ -9,6 +9,10 @@ import mergefileconfiguration "syncit/port/mergeFileConfiguration"
 type DiffFileConfigurationUseCase interface {
 	// CalculateDiffForUserFiles builds a decision for every declared user-space file.
 	CalculateDiffForUserFiles(userConfigurationFiles []mergefileconfiguration.ResolvedFile) []DiffFileDecision
+
+	// CalculateDiffForRootFiles builds a decision for every declared root-space file.
+	// Equality uses size first, then byte comparison.
+	CalculateDiffForRootFiles(rootConfigurationFiles []mergefileconfiguration.ResolvedFile) []DiffFileDecision
 }
 
 // DiffFileDecisionCode is the decision code for a single resolved file.

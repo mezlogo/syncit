@@ -114,6 +114,51 @@ func (a *Adapter) ReportDiff(repoPath string, decisions []difffileconfiguration.
 	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
 }
 
+func (a *Adapter) ReportDiffRoot(repoPath string, decisions []difffileconfiguration.DiffFileDecision, mergeErr error) {
+	pterm.DefaultSection.WithLevel(1).Println("diff repository (root): " + repoPath)
+	if mergeErr != nil {
+		pterm.Error.Println(mergeErr)
+	}
+	if len(decisions) == 0 {
+		pterm.Println("[]")
+		return
+	}
+	rows := pterm.TableData{{"decision", "declared", "target"}}
+	for _, decision := range decisions {
+		rows = append(rows, []string{
+			colorizeDiffCode(decision.Code),
+			decision.ResolvedFile.AbsoluteModuleFilePath,
+			decision.ResolvedFile.AbsoluteHostFilePath,
+		})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
+func (a *Adapter) ReportSyncRoot(repoPath string, decisions []syncfileconfiguration.SyncFileDecision, mergeErr error) {
+	pterm.DefaultSection.WithLevel(1).Println("sync repository (root): " + repoPath)
+	if mergeErr != nil {
+		pterm.Error.Println(mergeErr)
+	}
+	if len(decisions) == 0 {
+		pterm.Println("[]")
+		return
+	}
+	rows := pterm.TableData{{"decision", "declared", "target", "error"}}
+	for _, d := range decisions {
+		errStr := ""
+		if d.Err != nil {
+			errStr = d.Err.Error()
+		}
+		rows = append(rows, []string{
+			colorizeSyncCode(d.Code),
+			d.ResolvedFile.AbsoluteModuleFilePath,
+			d.ResolvedFile.AbsoluteHostFilePath,
+			errStr,
+		})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
 func colorizeDiffCode(code difffileconfiguration.DiffFileDecisionCode) string {
 	switch code {
 	case difffileconfiguration.DiffFileDecisionCodeTargetFileEqualToDeclared:
@@ -170,7 +215,10 @@ func (a *Adapter) ReportSync(repoPath string, decisions []syncfileconfiguration.
 
 func colorizeSyncCode(code syncfileconfiguration.SyncFileDecisionCode) string {
 	switch code {
-	case syncfileconfiguration.SyncFileDecisionCodeLinked, syncfileconfiguration.SyncFileDecisionCodeRecreated:
+	case syncfileconfiguration.SyncFileDecisionCodeLinked,
+		syncfileconfiguration.SyncFileDecisionCodeCopied,
+		syncfileconfiguration.SyncFileDecisionCodeRecreated:
+
 		return colorGreen + string(code) + colorReset
 	case syncfileconfiguration.SyncFileDecisionCodeSkippedUpToDate:
 		return colorCyan + string(code) + colorReset

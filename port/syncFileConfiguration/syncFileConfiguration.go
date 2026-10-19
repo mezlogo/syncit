@@ -5,6 +5,10 @@ import mergefileconfiguration "syncit/port/mergeFileConfiguration"
 // SyncFileConfigurationUseCase applies declared user-space file configuration to the real filesystem.
 type SyncFileConfigurationUseCase interface {
 	SyncUserFiles(files []mergefileconfiguration.ResolvedFile, options SyncOptions) []SyncFileDecision
+
+	// SyncRootFiles applies every resolved root file as a copied file using sudo when required.
+	// Operation continues on per-file errors; each outcome is reported in the returned decisions.
+	SyncRootFiles(files []mergefileconfiguration.ResolvedFile, options SyncOptions) []SyncFileDecision
 }
 
 type SyncOptions struct {
@@ -17,7 +21,9 @@ type SyncOptions struct {
 type SyncFileDecisionCode string
 
 const (
-	SyncFileDecisionCodeLinked           SyncFileDecisionCode = "LINKED"
+	SyncFileDecisionCodeLinked SyncFileDecisionCode = "LINKED"
+	SyncFileDecisionCodeCopied SyncFileDecisionCode = "COPIED"
+
 	SyncFileDecisionCodeRecreated        SyncFileDecisionCode = "RECREATED"
 	SyncFileDecisionCodeSkippedUpToDate  SyncFileDecisionCode = "SKIPPED_UP_TO_DATE"
 	SyncFileDecisionCodeSkippedExisting  SyncFileDecisionCode = "SKIPPED_EXISTING"

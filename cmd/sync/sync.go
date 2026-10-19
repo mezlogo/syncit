@@ -24,6 +24,7 @@ func New(
 	var repositories []string
 	var hostName, outputHome, outputRoot string
 	var overwrite, reset bool
+	var includeUser, includeRoot bool
 
 	defaultRepositories := splitCommaSeparated(os.Getenv("SYNCIT_REPO"))
 	defaultHostName := strings.TrimSpace(os.Getenv("SYNCIT_HOST"))
@@ -38,6 +39,7 @@ func New(
 			defaultOutputHome = h
 		}
 	}
+	defaultOutputRoot := "/"
 
 	cmd := &cobra.Command{
 		Use:   "sync",
@@ -64,23 +66,36 @@ func New(
 				modules = append(modules, result.Modules...)
 			}
 
+			processUser := includeUser || !includeRoot
+			processRoot := includeRoot || !includeUser
+
 			mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
 			resolved, mergeErr := mergePort.MergeFiles(modules, mapping)
-
-			decisions := syncPort.SyncUserFiles(resolved.UserFiles, syncfileconfiguration.SyncOptions{
+			opts := syncfileconfiguration.SyncOptions{
 				Overwrite: overwrite,
 				Reset:     reset,
-			})
+			}
 
-			reportPort.ReportSync(strings.Join(repos, ", "), decisions, mergeErr)
+			if processUser {
+				reportPort.ReportSync(strings.Join(repos, ", "),
+					syncPort.SyncUserFiles(resolved.UserFiles, opts), mergeErr)
+			}
+			if processRoot {
+				reportPort.ReportSyncRoot(strings.Join(repos, ", "),
+					syncPort.SyncRootFiles(resolved.RootFiles, opts), mergeErr)
+			}
 			return nil
+
 		},
 	}
 
 	cmd.Flags().StringSliceVar(&repositories, "repo", defaultRepositories, "repository directories separated by comma; defaults to $SYNCIT_REPO")
 	cmd.Flags().StringVar(&hostName, "host", defaultHostName, "host declaration name; defaults to $SYNCIT_HOST or os hostname")
 	cmd.Flags().StringVar(&outputHome, "output-home", defaultOutputHome, "home directory used for file mapping; defaults to $HOME")
-	cmd.Flags().StringVar(&outputRoot, "output-root", "/", "root directory used for file mapping; defaults to /")
+	cmd.Flags().StringVar(&outputRoot, "output-root", defaultOutputRoot, "root directory used for file mapping; defaults to /")
+	cmd.Flags().BoolVar(&includeUser, "include-user", false, "process user file configuration when any include flag is set")
+	cmd.Flags().BoolVar(&includeRoot, "include-root", false, "process root file configuration when any include flag is set")
+
 	cmd.Flags().BoolVar(&overwrite, "overwrite", false, "recreate existing files or wrong links at the target")
 	cmd.Flags().BoolVar(&reset, "reset", false, "recreate the link even when it already points to the declared file")
 

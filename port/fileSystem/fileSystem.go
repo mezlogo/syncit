@@ -27,6 +27,15 @@ type FileSystemPort interface {
 
 	// RemoveUserFile removes a file or symlink at absoluteFilePath. Refuses to remove directories.
 	RemoveUserFile(absoluteFilePath string) error
+
+	// EnsureRootDirRecursive creates the directory tree using elevated privileges when required.
+	EnsureRootDirRecursive(absoluteDirPath string) error
+
+	// CopyFileToRoot copies sourceAbsoluteFilePath to targetAbsoluteFilePath using elevated privileges when required.
+	CopyFileToRoot(sourceAbsoluteFilePath, targetAbsoluteFilePath string) error
+
+	// RemoveRootFile removes a file at absoluteFilePath using elevated privileges when required.
+	RemoveRootFile(absoluteFilePath string) error
 }
 
 type FileSystemStatCode string
