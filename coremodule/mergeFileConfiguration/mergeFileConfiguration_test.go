@@ -45,12 +45,12 @@ func TestUseCase_MergeFiles(t *testing.T) {
 			},
 			wantRoot: []mergeport.ResolvedFile{
 				{
-					AbsoluteModuleFilePath: "/repo/modules/base/etc/systemd/network/20-wired.network",
-					AbsoluteHostFilePath:   "/etc/systemd/network/20-wired.network",
-				},
-				{
 					AbsoluteModuleFilePath: "/repo/modules/base/root/boot/loader.conf",
 					AbsoluteHostFilePath:   "/boot/loader.conf",
+				},
+				{
+					AbsoluteModuleFilePath: "/repo/modules/base/etc/systemd/network/20-wired.network",
+					AbsoluteHostFilePath:   "/etc/systemd/network/20-wired.network",
 				},
 			},
 		},
