@@ -1,11 +1,17 @@
 package repoReport
 
-import "syncit/port/repoAO"
+import (
+	mergefileconfiguration "syncit/port/mergeFileConfiguration"
+	repoao "syncit/port/repoAO"
+)
 
 // This port isolate pterm or any other beutiful output library AND stdout from core and cmd
 
 type RepoReportUseCase interface {
 
 	// Just report modules from repoAO
-	ReportRepo(repoPath string, modules []repoAO.RepositoryDeclarationModule)
+	ReportRepo(repoPath string, modules []repoao.RepositoryDeclarationModule)
+
+	// ReportMergedRepo reports resolved file configuration and any merge error.
+	ReportMergedRepo(repoPath string, resolved mergefileconfiguration.ResolvedFileConfiguration, mergeErr error)
 }

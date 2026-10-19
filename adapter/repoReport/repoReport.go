@@ -6,6 +6,7 @@ import (
 
 	"github.com/pterm/pterm"
 
+	mergeport "syncit/port/mergeFileConfiguration"
 	repoao "syncit/port/repoAO"
 	port "syncit/port/repoReport"
 )
@@ -63,4 +64,29 @@ func (a *Adapter) ReportRepo(repoPath string, modules []repoao.RepositoryDeclara
 			_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
 		}
 	}
+}
+
+// ReportMergedRepo prints resolved files and the first merge error.
+func (a *Adapter) ReportMergedRepo(repoPath string, resolved mergeport.ResolvedFileConfiguration, mergeErr error) {
+	pterm.DefaultSection.WithLevel(1).Println("merged repository: " + repoPath)
+
+	if mergeErr != nil {
+		pterm.Error.Println(mergeErr)
+	}
+
+	reportMergedFiles("user files", resolved.UserFiles)
+	reportMergedFiles("root files", resolved.RootFiles)
+}
+
+func reportMergedFiles(title string, files []mergeport.ResolvedFile) {
+	pterm.DefaultSection.WithLevel(2).Println(title)
+	if len(files) == 0 {
+		pterm.Println("[]")
+		return
+	}
+	rows := pterm.TableData{{"source", "target"}}
+	for _, file := range files {
+		rows = append(rows, []string{file.AbsoluteModuleFilePath, file.AbsoluteHostFilePath})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
 }

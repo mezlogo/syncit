@@ -8,14 +8,20 @@ import (
 
 	"github.com/spf13/cobra"
 
+	mergefileconfiguration "syncit/port/mergeFileConfiguration"
 	repositorydeclaration "syncit/port/repoAO"
 	reporeport "syncit/port/repoReport"
+	toolsconfiguraion "syncit/port/toolsConfiguraion"
 )
 
 // New creates the report command. It depends only on ports.
-func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, reportPort reporeport.RepoReportUseCase) *cobra.Command {
+func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergePort mergefileconfiguration.MergeFileConfigurationUseCase, reportPort reporeport.RepoReportUseCase) *cobra.Command {
+
 	var repositories []string
 	var hostName string
+	var merged bool
+	var outputHome string
+	var outputRoot string
 
 	defaultRepositories := splitCommaSeparated(os.Getenv("SYNCIT_REPO"))
 	defaultHostName := strings.TrimSpace(os.Getenv("SYNCIT_HOST"))
@@ -24,6 +30,14 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, report
 			defaultHostName = hostname
 		}
 	}
+
+	defaultOutputHome := strings.TrimSpace(os.Getenv("HOME"))
+	if defaultOutputHome == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			defaultOutputHome = home
+		}
+	}
+	defaultOutputRoot := "/"
 
 	cmd := &cobra.Command{
 		Use:   "report",
@@ -46,14 +60,26 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, report
 				if err != nil {
 					return fmt.Errorf("parse repository %q: %w", repo, err)
 				}
+				if merged {
+					mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
+					resolved, mergeErr := mergePort.MergeFiles(result.Modules, mapping)
+					reportPort.ReportMergedRepo(repo, resolved, mergeErr)
+					continue
+				}
 				reportPort.ReportRepo(repo, result.Modules)
 			}
+
 			return nil
 		},
 	}
 
 	cmd.Flags().StringSliceVar(&repositories, "repo", defaultRepositories, "repository directories separated by comma; defaults to $SYNCIT_REPO")
 	cmd.Flags().StringVar(&hostName, "host", defaultHostName, "host declaration name; defaults to $SYNCIT_HOST or os hostname")
+
+	cmd.Flags().BoolVar(&merged, "merged", false, "merge file configuration and report resolved files and errors")
+	cmd.Flags().StringVar(&outputHome, "output-home", defaultOutputHome, "home directory used for merged file mapping; defaults to $HOME")
+	cmd.Flags().StringVar(&outputRoot, "output-root", defaultOutputRoot, "root directory used for merged file mapping; defaults to /")
+
 	return cmd
 }
 
