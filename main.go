@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	repositorydeclarationadapter "syncit/adapter/repositorydeclaration"
+	repositorydeclarationadapter "syncit/adapter/repoAO"
 	reportcmd "syncit/cmd/report"
 )
 

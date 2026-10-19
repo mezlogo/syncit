@@ -1,4 +1,4 @@
-package repositorydeclaration
+package repoAO
 
 import (
 	"errors"

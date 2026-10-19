@@ -1,4 +1,4 @@
-package repositorydeclaration
+package repoAO
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	port "syncit/port/repositorydeclaration"
+	port "syncit/port/repoAO"
 )
 
 /*

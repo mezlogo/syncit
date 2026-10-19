@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	repositorydeclaration "syncit/port/repositorydeclaration"
+	repositorydeclaration "syncit/port/repoAO"
 )
 
 // New creates the report command. It depends only on the repository declaration port.
