@@ -18,8 +18,22 @@ var _ port.FileSystemPort = (*Adapter)(nil)
 
 // StatUserSpace stats each absolute path without requiring elevated privileges.
 func (a *Adapter) StatUserSpace(userAbsouteFilePaths []string) []port.FileSystemStat {
-	stats := make([]port.FileSystemStat, 0, len(userAbsouteFilePaths))
-	for _, absoluteFilePath := range userAbsouteFilePaths {
+	return a.CalculateStatForUserFiles(userAbsouteFilePaths)
+}
+
+// CalculateStatForUserFiles stats each absolute user-space path.
+func (a *Adapter) CalculateStatForUserFiles(userAbsouteFilePaths []string) []port.FileSystemStat {
+	return statPaths(userAbsouteFilePaths)
+}
+
+// CalculateStatForRootFiles stats each absolute root-space path.
+func (a *Adapter) CalculateStatForRootFiles(rootAbsouteFilePaths []string) []port.FileSystemStat {
+	return statPaths(rootAbsouteFilePaths)
+}
+
+func statPaths(absoluteFilePaths []string) []port.FileSystemStat {
+	stats := make([]port.FileSystemStat, 0, len(absoluteFilePaths))
+	for _, absoluteFilePath := range absoluteFilePaths {
 		stat := port.FileSystemStat{AbsoluteFilePath: absoluteFilePath}
 		info, err := os.Lstat(absoluteFilePath)
 		if err != nil {
@@ -39,4 +53,23 @@ func (a *Adapter) StatUserSpace(userAbsouteFilePaths []string) []port.FileSystem
 		stats = append(stats, stat)
 	}
 	return stats
+}
+
+// GetLinkForUserFile returns the link target for a user-space symlink.
+func (a *Adapter) GetLinkForUserFile(absoluteFilePath string) (string, error) {
+	return os.Readlink(absoluteFilePath)
+}
+
+// GetFileSizeInBytesForRootFile returns the size in bytes for a root-space file.
+func (a *Adapter) GetFileSizeInBytesForRootFile(absoluteFilePath string) (int64, error) {
+	info, err := os.Stat(absoluteFilePath)
+	if err != nil {
+		return 0, err
+	}
+	return info.Size(), nil
+}
+
+// ReadRawFileContent returns the raw content of a file.
+func (a *Adapter) ReadRawFileContent(absoluteFilePath string) ([]byte, error) {
+	return os.ReadFile(absoluteFilePath)
 }
