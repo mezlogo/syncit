@@ -41,7 +41,8 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort) *cobra
 
 			out := cmd.OutOrStdout()
 			for i, repo := range repos {
-				result, err := declarationPort.ParseRepository(cmd.Context(), repositorydeclaration.RepositoryDeclarationCommand{
+				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
+
 					RepositoryPath: repo,
 					HostName:       host,
 				})

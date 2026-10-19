@@ -1,7 +1,6 @@
 package repositorydeclaration
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -69,10 +68,8 @@ var _ port.RepositoryDeclarationPort = (*Adapter)(nil)
 
 // ParseRepository reads the host declaration, every module declaration, and
 // the relative file list for every declared module.
-func (a *Adapter) ParseRepository(ctx context.Context, command port.RepositoryDeclarationCommand) (port.RepositoryDeclarationResult, error) {
-	if err := ctx.Err(); err != nil {
-		return port.RepositoryDeclarationResult{}, err
-	}
+func (a *Adapter) ParseRepository(command port.RepositoryDeclarationCommand) (port.RepositoryDeclarationResult, error) {
+
 	if command.RepositoryPath == "" {
 		return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: repository path is empty", port.ErrNoRepositoryFound)
 	}
@@ -112,9 +109,6 @@ func (a *Adapter) ParseRepository(ctx context.Context, command port.RepositoryDe
 
 	modules := make([]port.RepositoryDeclarationModule, 0, len(host.Modules))
 	for _, rawModuleName := range host.Modules {
-		if err := ctx.Err(); err != nil {
-			return port.RepositoryDeclarationResult{}, err
-		}
 
 		moduleName := strings.TrimSpace(rawModuleName)
 		if moduleName == "" {
@@ -138,7 +132,8 @@ func (a *Adapter) ParseRepository(ctx context.Context, command port.RepositoryDe
 			return port.RepositoryDeclarationResult{}, err
 		}
 
-		files, err := collectDeclaredFiles(ctx, moduleDir)
+		files, err := collectDeclaredFiles(moduleDir)
+
 		if err != nil {
 			return port.RepositoryDeclarationResult{}, fmt.Errorf("collect files for module %q: %w", moduleName, err)
 		}
@@ -174,15 +169,14 @@ func readModuleDeclaration(moduleDir string) (ModuleDeclarationYaml, error) {
 	return declarations, nil
 }
 
-func collectDeclaredFiles(ctx context.Context, moduleDir string) ([]string, error) {
+func collectDeclaredFiles(moduleDir string) ([]string, error) {
+
 	files := make([]string, 0)
 	err := filepath.WalkDir(moduleDir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
-		if err := ctx.Err(); err != nil {
-			return err
-		}
+
 		if entry.IsDir() {
 			return nil
 		}
