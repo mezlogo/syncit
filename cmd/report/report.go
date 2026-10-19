@@ -104,11 +104,11 @@ func printResult(out io.Writer, repo string, host string, result repositorydecla
 			}
 		}
 
-		if len(module.RelativeToModuleDeclaredFiles) == 0 {
+		if len(module.RelativeFilePaths) == 0 {
 			appendf(&b, "    files: []\n")
 		} else {
 			appendf(&b, "    files:\n")
-			for _, file := range module.RelativeToModuleDeclaredFiles {
+			for _, file := range module.RelativeFilePaths {
 				appendf(&b, "      - %s\n", file)
 			}
 		}

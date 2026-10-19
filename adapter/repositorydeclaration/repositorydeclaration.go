@@ -139,10 +139,10 @@ func (a *Adapter) ParseRepository(command port.RepositoryDeclarationCommand) (po
 		}
 
 		modules = append(modules, port.RepositoryDeclarationModule{
-			ModuleName:                    moduleName,
-			ModuleAbsoulutePath:           moduleDir,
-			Declarations:                  map[string][]string(declarations),
-			RelativeToModuleDeclaredFiles: files,
+			ModuleName:          moduleName,
+			ModuleAbsoulutePath: moduleDir,
+			Declarations:        map[string][]string(declarations),
+			RelativeFilePaths:   files,
 		})
 	}
 

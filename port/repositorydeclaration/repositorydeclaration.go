@@ -24,7 +24,7 @@ type RepositoryDeclarationResult struct {
 type RepositoryDeclarationModule struct {
 	// Module name for reporting and better error handling
 	ModuleName string
-	// Absolute path to module
+	// Absolute path to module starts with "/" ends without "/"
 	ModuleAbsoulutePath string
 	// What module.yaml declared
 	// Dictionary is an architecture decision for make it possible to easy extend functionality
@@ -43,8 +43,8 @@ type RepositoryDeclarationModule struct {
 	//   2. $repo/modules/$module/module.yaml - ignore
 	// This is a RELATIVE to module pathes
 	// This string MUST NOT start with "/"
-	// When I add .ModuleAbsoulutePath + "/" + RelativeToModuleDeclaredFiles - I'll get an absoulut path
-	RelativeToModuleDeclaredFiles []string
+	// When I add .ModuleAbsoulutePath + "/" + RelativeFilePaths - I'll get an absoulut path
+	RelativeFilePaths []string
 }
 
 // Sentinel errors returned (wrapped) by ParseRepository.
