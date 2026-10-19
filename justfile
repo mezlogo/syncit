@@ -16,4 +16,4 @@ release:
 	go build -ldflags="-s -w" -trimpath -o bin/ ./...
 
 compress:
-	upx --best bin/syncit
+	./upx --best bin/syncit
