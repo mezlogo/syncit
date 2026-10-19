@@ -1,9 +1,2 @@
 modules:
-  - moduleA
   - moduleB
-tools:
-  - home
-  - repo
-  - systemd
-  - pacman
-  - aur

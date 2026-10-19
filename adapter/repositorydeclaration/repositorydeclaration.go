@@ -114,8 +114,15 @@ func (a *Adapter) ParseRepository(command port.RepositoryDeclarationCommand) (po
 		if moduleName == "" {
 			continue
 		}
+		if moduleName == "." || moduleName == ".." || moduleName != filepath.Base(moduleName) {
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("%w: invalid module name %q", port.ErrBadHostFile, moduleName)
+		}
 
-		moduleDir := filepath.Join(repoPath, "modules", moduleName)
+		moduleDir, err := filepath.Abs(filepath.Join(repoPath, "modules", moduleName))
+		if err != nil {
+			return port.RepositoryDeclarationResult{}, fmt.Errorf("resolve module %q path: %w", moduleName, err)
+		}
+
 		moduleInfo, err := os.Stat(moduleDir)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -185,12 +192,16 @@ func collectDeclaredFiles(moduleDir string) ([]string, error) {
 		if err != nil {
 			return err
 		}
-		relativePath = filepath.ToSlash(relativePath)
-		if relativePath == "module.yaml" {
+		relativePath = filepath.ToSlash(filepath.Clean(relativePath))
+		if relativePath == "." || relativePath == "module.yaml" {
+			return nil
+		}
+		if strings.HasPrefix(relativePath, "/") || strings.HasPrefix(relativePath, "../") {
 			return nil
 		}
 
 		files = append(files, relativePath)
+
 		return nil
 	})
 	if err != nil {
