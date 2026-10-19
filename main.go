@@ -7,11 +7,13 @@ import (
 	"github.com/spf13/cobra"
 
 	repositorydeclarationadapter "syncit/adapter/repoAO"
+	reporeportadapter "syncit/adapter/repoReport"
 	reportcmd "syncit/cmd/report"
 )
 
 func main() {
 	declarationPort := repositorydeclarationadapter.New()
+	reportPort := reporeportadapter.New()
 
 	rootCmd := &cobra.Command{
 		Use:           "syncit",
@@ -19,7 +21,7 @@ func main() {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 	}
-	rootCmd.AddCommand(reportcmd.New(declarationPort))
+	rootCmd.AddCommand(reportcmd.New(declarationPort, reportPort))
 
 	if err := rootCmd.Execute(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)

@@ -3,18 +3,17 @@ package report
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	repositorydeclaration "syncit/port/repoAO"
+	reporeport "syncit/port/repoReport"
 )
 
-// New creates the report command. It depends only on the repository declaration port.
-func New(declarationPort repositorydeclaration.RepositoryDeclarationPort) *cobra.Command {
+// New creates the report command. It depends only on ports.
+func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, reportPort reporeport.RepoReportUseCase) *cobra.Command {
 	var repositories []string
 	var hostName string
 
@@ -39,24 +38,15 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort) *cobra
 				return errors.New("host is required: use --host or SYNCIT_HOST")
 			}
 
-			out := cmd.OutOrStdout()
-			for i, repo := range repos {
+			for _, repo := range repos {
 				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
-
 					RepositoryPath: repo,
 					HostName:       host,
 				})
 				if err != nil {
 					return fmt.Errorf("parse repository %q: %w", repo, err)
 				}
-				if i > 0 {
-					if _, err := fmt.Fprintln(out); err != nil {
-						return err
-					}
-				}
-				if err := printResult(out, repo, host, result); err != nil {
-					return err
-				}
+				reportPort.ReportRepo(repo, result.Modules)
 			}
 			return nil
 		},
@@ -65,61 +55,6 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort) *cobra
 	cmd.Flags().StringSliceVar(&repositories, "repo", defaultRepositories, "repository directories separated by comma; defaults to $SYNCIT_REPO")
 	cmd.Flags().StringVar(&hostName, "host", defaultHostName, "host declaration name; defaults to $SYNCIT_HOST or os hostname")
 	return cmd
-}
-
-func printResult(out io.Writer, repo string, host string, result repositorydeclaration.RepositoryDeclarationResult) error {
-	var b strings.Builder
-	appendf(&b, "repository: %s\n", repo)
-	appendf(&b, "host: %s\n", host)
-	if len(result.Modules) == 0 {
-		appendf(&b, "modules: []\n")
-		_, err := fmt.Fprint(out, b.String())
-		return err
-	}
-
-	appendf(&b, "modules:\n")
-	for _, module := range result.Modules {
-		appendf(&b, "  - name: %s\n", module.ModuleName)
-		appendf(&b, "    path: %s\n", module.ModuleAbsoulutePath)
-
-		if len(module.Declarations) == 0 {
-			appendf(&b, "    declarations: {}\n")
-		} else {
-			appendf(&b, "    declarations:\n")
-			keys := make([]string, 0, len(module.Declarations))
-			for key := range module.Declarations {
-				keys = append(keys, key)
-			}
-			sort.Strings(keys)
-			for _, key := range keys {
-				values := module.Declarations[key]
-				if len(values) == 0 {
-					appendf(&b, "      %s: []\n", key)
-					continue
-				}
-				appendf(&b, "      %s:\n", key)
-				for _, value := range values {
-					appendf(&b, "        - %s\n", value)
-				}
-			}
-		}
-
-		if len(module.RelativeFilePaths) == 0 {
-			appendf(&b, "    files: []\n")
-		} else {
-			appendf(&b, "    files:\n")
-			for _, file := range module.RelativeFilePaths {
-				appendf(&b, "      - %s\n", file)
-			}
-		}
-	}
-
-	_, err := fmt.Fprint(out, b.String())
-	return err
-}
-
-func appendf(b *strings.Builder, format string, args ...any) {
-	_, _ = fmt.Fprintf(b, format, args...)
 }
 
 func normalizeList(values []string) []string {
