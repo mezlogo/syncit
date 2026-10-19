@@ -1,5 +1,7 @@
 package toolsconfiguraion
 
+import "strings"
+
 // This is a simple tools extension mechanism
 
 type ResolvedFileConfigurationMapping struct {
@@ -14,15 +16,25 @@ type ResolvedFileConfigurationMapping struct {
 
 // Default value used in application
 // Must handle arguments with both notation: with and without ending slash
-func NewResolvedFileConfigurationMapping(root string, home string) {
-	/*
-	 * TODO: Use only string manipulation append "/" to and if no for root and home.
-	 * Then create mapping:
-	 * "config": home + ".config/"
-	 * "local": home + ".local/"
-	 * "ssh": home + ".ssh/"
-	 * "home": home
-	 * "root": root
-	 * "etc": root + "etc/"
-	 */
+func NewResolvedFileConfigurationMapping(root string, home string) ResolvedFileConfigurationMapping {
+	root = ensureTrailingSlash(root)
+	home = ensureTrailingSlash(home)
+
+	return ResolvedFileConfigurationMapping{
+		fileConfigurations: map[string]string{
+			"config": home + ".config/",
+			"local":  home + ".local/",
+			"ssh":    home + ".ssh/",
+			"home":   home,
+			"root":   root,
+			"etc":    root + "etc/",
+		},
+	}
+}
+
+func ensureTrailingSlash(value string) string {
+	if value == "" || strings.HasSuffix(value, "/") {
+		return value
+	}
+	return value + "/"
 }
