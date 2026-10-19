@@ -52,6 +52,25 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 				return errors.New("host is required: use --host or SYNCIT_HOST")
 			}
 
+			if merged {
+				modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
+				for _, repo := range repos {
+					result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
+						RepositoryPath: repo,
+						HostName:       host,
+					})
+					if err != nil {
+						return fmt.Errorf("parse repository %q: %w", repo, err)
+					}
+					modules = append(modules, result.Modules...)
+				}
+
+				mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
+				resolved, mergeErr := mergePort.MergeFiles(modules, mapping)
+				reportPort.ReportMergedRepo(strings.Join(repos, ", "), resolved, mergeErr)
+				return nil
+			}
+
 			for _, repo := range repos {
 				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
 					RepositoryPath: repo,
@@ -60,16 +79,11 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 				if err != nil {
 					return fmt.Errorf("parse repository %q: %w", repo, err)
 				}
-				if merged {
-					mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
-					resolved, mergeErr := mergePort.MergeFiles(result.Modules, mapping)
-					reportPort.ReportMergedRepo(repo, resolved, mergeErr)
-					continue
-				}
 				reportPort.ReportRepo(repo, result.Modules)
 			}
 
 			return nil
+
 		},
 	}
 
