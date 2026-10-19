@@ -11,3 +11,6 @@ format:
 
 build:
 	go build -o bin/ ./...
+
+release:
+	go build -ldflags="-s -w" -trimpath -o bin/ ./...
