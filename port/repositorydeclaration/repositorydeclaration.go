@@ -37,7 +37,13 @@ type RepositoryDeclarationModule struct {
 	// { "pacman": ["nvim", "fish"], "systemd": ["systemd-resolved.service", "systemd-networkd.service"] }
 	Declarations map[string][]string
 	// What files module declared
+	// List contains only files, not dirs
+	// List contains only files inside dir, for example:
+	//   1. $repo/modules/$module/config/fish/config.fish - it's ok
+	//   2. $repo/modules/$module/module.yaml - ignore
 	// This is a RELATIVE to module pathes
+	// This string MUST NOT start with "/"
+	// When I add .ModuleAbsoulutePath + "/" + RelativeToModuleDeclaredFiles - I'll get an absoulut path
 	RelativeToModuleDeclaredFiles []string
 }
 
@@ -54,5 +60,8 @@ var (
 
 // This module is a port - it isolates file system and yaml specific dependency from core logic
 type RepositoryDeclarationPort interface {
+	// This function MUST traverse and process ONLY declared modules for host
+	// Each module file list MUST contain only files, if any directory is empty - skip it
+	// Each module file list MUST contain only files inside dir. Ignore `module.yaml`
 	ParseRepository(command RepositoryDeclarationCommand) (RepositoryDeclarationResult, error)
 }
