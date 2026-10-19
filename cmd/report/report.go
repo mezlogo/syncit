@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	difffileconfiguration "syncit/port/diffFileConfiguration"
 	mergefileconfiguration "syncit/port/mergeFileConfiguration"
 	repositorydeclaration "syncit/port/repoAO"
 	reporeport "syncit/port/repoReport"
@@ -15,11 +16,12 @@ import (
 )
 
 // New creates the report command. It depends only on ports.
-func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergePort mergefileconfiguration.MergeFileConfigurationUseCase, reportPort reporeport.RepoReportUseCase) *cobra.Command {
+func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergePort mergefileconfiguration.MergeFileConfigurationUseCase, diffPort difffileconfiguration.DiffFileConfigurationUseCase, reportPort reporeport.RepoReportUseCase) *cobra.Command {
 
 	var repositories []string
 	var hostName string
 	var merged bool
+	var diff bool
 	var outputHome string
 	var outputRoot string
 
@@ -52,7 +54,7 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 				return errors.New("host is required: use --host or SYNCIT_HOST")
 			}
 
-			if merged {
+			if merged || diff {
 				modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
 				for _, repo := range repos {
 					result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
@@ -67,7 +69,16 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 
 				mapping := toolsconfiguraion.NewResolvedFileConfigurationMapping(outputRoot, outputHome)
 				resolved, mergeErr := mergePort.MergeFiles(modules, mapping)
-				reportPort.ReportMergedRepo(strings.Join(repos, ", "), resolved, mergeErr)
+
+				if merged {
+					reportPort.ReportMergedRepo(strings.Join(repos, ", "), resolved, mergeErr)
+				}
+
+				if diff {
+					decisions := diffPort.CalculateDiffForUserFiles(resolved.UserFiles)
+					reportPort.ReportDiff(strings.Join(repos, ", "), decisions, mergeErr)
+				}
+
 				return nil
 			}
 
@@ -91,6 +102,7 @@ func New(declarationPort repositorydeclaration.RepositoryDeclarationPort, mergeP
 	cmd.Flags().StringVar(&hostName, "host", defaultHostName, "host declaration name; defaults to $SYNCIT_HOST or os hostname")
 
 	cmd.Flags().BoolVar(&merged, "merged", false, "merge file configuration and report resolved files and errors")
+	cmd.Flags().BoolVar(&diff, "diff", false, "calculate and report diff for resolved user files")
 	cmd.Flags().StringVar(&outputHome, "output-home", defaultOutputHome, "home directory used for merged file mapping; defaults to $HOME")
 	cmd.Flags().StringVar(&outputRoot, "output-root", defaultOutputRoot, "root directory used for merged file mapping; defaults to /")
 

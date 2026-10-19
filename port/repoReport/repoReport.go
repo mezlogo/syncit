@@ -1,6 +1,7 @@
 package repoReport
 
 import (
+	difffileconfiguration "syncit/port/diffFileConfiguration"
 	mergefileconfiguration "syncit/port/mergeFileConfiguration"
 	repoao "syncit/port/repoAO"
 )
@@ -14,4 +15,7 @@ type RepoReportUseCase interface {
 
 	// ReportMergedRepo reports resolved file configuration and any merge error.
 	ReportMergedRepo(repoPath string, resolved mergefileconfiguration.ResolvedFileConfiguration, mergeErr error)
+
+	// ReportDiff reports diff decisions with colorized decision codes.
+	ReportDiff(repoPath string, decisions []difffileconfiguration.DiffFileDecision, mergeErr error)
 }

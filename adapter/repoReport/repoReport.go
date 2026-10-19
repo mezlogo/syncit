@@ -6,6 +6,7 @@ import (
 
 	"github.com/pterm/pterm"
 
+	difffileconfiguration "syncit/port/diffFileConfiguration"
 	mergeport "syncit/port/mergeFileConfiguration"
 	repoao "syncit/port/repoAO"
 	port "syncit/port/repoReport"
@@ -20,6 +21,14 @@ func New() *Adapter {
 }
 
 var _ port.RepoReportUseCase = (*Adapter)(nil)
+
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
+	colorYellow = "\033[33m"
+	colorCyan   = "\033[36m"
+)
 
 // ReportRepo prints a repository declaration using pterm tables and sections.
 func (a *Adapter) ReportRepo(repoPath string, modules []repoao.RepositoryDeclarationModule) {
@@ -76,6 +85,43 @@ func (a *Adapter) ReportMergedRepo(repoPath string, resolved mergeport.ResolvedF
 
 	reportMergedFiles("user files", resolved.UserFiles)
 	reportMergedFiles("root files", resolved.RootFiles)
+}
+
+// ReportDiff prints colorized diff decisions for resolved user files.
+func (a *Adapter) ReportDiff(repoPath string, decisions []difffileconfiguration.DiffFileDecision, mergeErr error) {
+	pterm.DefaultSection.WithLevel(1).Println("diff repository: " + repoPath)
+
+	if mergeErr != nil {
+		pterm.Error.Println(mergeErr)
+	}
+
+	if len(decisions) == 0 {
+		pterm.Println("[]")
+		return
+	}
+
+	rows := pterm.TableData{{"decision", "declared", "target"}}
+	for _, decision := range decisions {
+		rows = append(rows, []string{
+			colorizeDiffCode(decision.Code),
+			decision.ResolvedFile.AbsoluteModuleFilePath,
+			decision.ResolvedFile.AbsoluteHostFilePath,
+		})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
+func colorizeDiffCode(code difffileconfiguration.DiffFileDecisionCode) string {
+	switch code {
+	case difffileconfiguration.DiffFileDecisionCodeTargetFileEqualToDeclared:
+		return colorGreen + string(code) + colorReset
+	case difffileconfiguration.DiffFileDecisionCodeTargetFileNotFound:
+		return colorYellow + string(code) + colorReset
+	case difffileconfiguration.DiffFileDecisionCodeTargetFileIsDirectory:
+		return colorRed + string(code) + colorReset
+	default:
+		return colorCyan + string(code) + colorReset
+	}
 }
 
 func reportMergedFiles(title string, files []mergeport.ResolvedFile) {
