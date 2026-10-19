@@ -20,16 +20,16 @@ type MergeFileConfigurationUseCase interface {
 
 type ResolvedFile struct {
 	// This is a path to file inside repository
-	absoluteModuleFilePath string
+	AbsoluteModuleFilePath string
 	// This is a path to real file on computer
-	absoluteHostFilePath string
+	AbsoluteHostFilePath string
 }
 
 type ResolvedFileConfiguration struct {
 	// home related files
-	userFiles []ResolvedFile
+	UserFiles []ResolvedFile
 	// root related files
-	rootFiles []ResolvedFile
+	RootFiles []ResolvedFile
 }
 
 // Error codes returned (wrapped) by MergeFiles.

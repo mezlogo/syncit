@@ -32,6 +32,12 @@ func NewResolvedFileConfigurationMapping(root string, home string) ResolvedFileC
 	}
 }
 
+// Lookup returns the resolved host directory for a module top-level configuration directory.
+func (m ResolvedFileConfigurationMapping) Lookup(configuration string) (string, bool) {
+	value, ok := m.fileConfigurations[configuration]
+	return value, ok
+}
+
 func ensureTrailingSlash(value string) string {
 	if value == "" || strings.HasSuffix(value, "/") {
 		return value
