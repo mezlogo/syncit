@@ -4,13 +4,10 @@ package filesystem
 
 type FileSystemPort interface {
 	// This method works with user space, not sudo or root required
-	StatUserSpace(userAbsouteFilePaths []string) map[string]StatResult
+	StatUserSpace(userAbsouteFilePaths []string) []FileSystemStat
 }
 
-/*
-TODO: wirte a hierarchy like sruct for StatResult
-- FILE_NOT_EXIST
-- LINK_TO(target)
-- FILE
-- DIRECTORY
-*/
+type FileSystemStat struct {
+	absoluteFilePath string
+	// TODO: declare code: FILE_NOT_EXIST, LINK_TO, FILE, DIRECTORY
+}
