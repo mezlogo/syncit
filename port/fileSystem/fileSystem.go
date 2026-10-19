@@ -6,11 +6,18 @@ type FileSystemPort interface {
 	// This method works with user space, not sudo or root required
 	CalculateStatForUserFiles(userAbsouteFilePaths []string) []FileSystemStat
 
+	// This method works with root space, sudo COULD be neccessary, however use SUDO only when permissions required
+	CalculateStatForRootFiles(rootAbsouteFilePaths []string) []FileSystemStat
+
 	// port for simple os call
 	GetLinkForUserFile(absoluteFilePath string) (string, error)
 
-	// get file size in bytes for eqaul test
-	GetFileSizeInBytesForUserFile(absoluteFilePath string) (int64, error)
+	// get file size in bytes for eqaul test. Root files are copied
+	GetFileSizeInBytesForRootFile(absoluteFilePath string) (int64, error)
+
+	// when file for root has same size we need to compare thiere content
+	// return raw buffer. IF possible don't use sudo
+	ReadRawFileContent(absoluteFilePath string) ([]byte, error)
 }
 
 type FileSystemStatCode string
