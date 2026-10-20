@@ -58,7 +58,7 @@ func New(
 			}
 
 			modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
-			mergedHandlers := map[string]string{}
+
 			modulesByRepo := make(map[string][]repositorydeclaration.RepositoryDeclarationModule, len(repos))
 			for _, repo := range repos {
 				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
@@ -71,13 +71,6 @@ func New(
 				modules = append(modules, result.Modules...)
 				modulesByRepo[repo] = result.Modules
 
-				handlers, err := declarationPort.ParseHandlers(repo)
-				if err != nil {
-					return fmt.Errorf("parse handlers %q: %w", repo, err)
-				}
-				for k, v := range handlers {
-					mergedHandlers[k] = v
-				}
 			}
 
 			mergedDeclarations := map[string][]string{}
@@ -140,7 +133,7 @@ func New(
 
 				if includeProcess {
 					processCmd := processhandlers.ProcessHandlersCommand{
-						Handlers:     mergedHandlers,
+
 						Declarations: mergedDeclarations,
 						DryRun:       true,
 					}

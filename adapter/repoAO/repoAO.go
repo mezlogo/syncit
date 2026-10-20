@@ -66,36 +66,6 @@ func New() *Adapter {
 
 var _ port.RepositoryDeclarationPort = (*Adapter)(nil)
 
-const handlersFileName = "handlers.yaml"
-
-func (a *Adapter) ParseHandlers(repoPath string) (map[string]string, error) {
-	if repoPath == "" {
-		return nil, fmt.Errorf("%w: repository path is empty", port.ErrNoRepositoryFound)
-	}
-	absRepo, err := filepath.Abs(repoPath)
-	if err != nil {
-		return nil, fmt.Errorf("resolve repository path: %w", err)
-	}
-
-	handlersFile := filepath.Join(absRepo, handlersFileName)
-	data, err := os.ReadFile(handlersFile)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return map[string]string{}, nil
-		}
-		return nil, fmt.Errorf("read handlers file: %w", err)
-	}
-
-	handlers := map[string]string{}
-	if len(strings.TrimSpace(string(data))) == 0 {
-		return handlers, nil
-	}
-	if err := yaml.Unmarshal(data, &handlers); err != nil {
-		return nil, fmt.Errorf("%w: %s: %v", port.ErrBadHandlersFile, handlersFile, err)
-	}
-	return handlers, nil
-}
-
 // ParseRepository reads the host declaration, every module declaration, and
 // the relative file list for every declared module.
 func (a *Adapter) ParseRepository(command port.RepositoryDeclarationCommand) (port.RepositoryDeclarationResult, error) {

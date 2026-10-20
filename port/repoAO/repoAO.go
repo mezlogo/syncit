@@ -56,7 +56,6 @@ var (
 	ErrDeclaredModuleNotFound        = errors.New("DECLARED_MODULE_NOT_FOUND")
 	ErrModuleDeclarationFileNotFound = errors.New("MODULE_DECLARATION_FILE_NOT_FOUND")
 	ErrBadModuleDeclaration          = errors.New("BAD_MODULE_DECLARATION")
-	ErrBadHandlersFile               = errors.New("BAD_HANDLERS_FILE")
 )
 
 // This module is a port - it isolates file system and yaml specific dependency from core logic
@@ -65,8 +64,4 @@ type RepositoryDeclarationPort interface {
 	// Each module file list MUST contain only files, if any directory is empty - skip it
 	// Each module file list MUST contain only files inside dir. Ignore `module.yaml`
 	ParseRepository(command RepositoryDeclarationCommand) (RepositoryDeclarationResult, error)
-
-	// ParseHandlers reads the repo-root handlers.yaml (tool -> template).
-	// Missing handlers.yaml returns an empty map and no error.
-	ParseHandlers(repoPath string) (map[string]string, error)
 }

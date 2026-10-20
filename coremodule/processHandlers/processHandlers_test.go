@@ -30,7 +30,6 @@ func TestUseCase_ProcessPreFileHandlers(t *testing.T) {
 		{
 			name: "pacman grouped unique",
 			cmd: port.ProcessHandlersCommand{
-				Handlers:     map[string]string{"pacman": "sudo pacman -S --needed $ALL_UNIQUE_VALUES_JOIN_WHITESPACE"},
 				Declarations: map[string][]string{"pacman": {"nvim", "fish", "nvim"}},
 			},
 			wantCalls: []string{"sudo pacman -S --needed fish nvim"},
@@ -39,7 +38,6 @@ func TestUseCase_ProcessPreFileHandlers(t *testing.T) {
 		{
 			name: "aur grouped",
 			cmd: port.ProcessHandlersCommand{
-				Handlers:     map[string]string{"aur": "yay -S --needed $ALL_UNIQUE_VALUES_JOIN_WHITESPACE"},
 				Declarations: map[string][]string{"aur": {"vscode", "leaf"}},
 			},
 			wantCalls: []string{"yay -S --needed leaf vscode"},
@@ -48,7 +46,6 @@ func TestUseCase_ProcessPreFileHandlers(t *testing.T) {
 		{
 			name: "dry run",
 			cmd: port.ProcessHandlersCommand{
-				Handlers:     map[string]string{"pacman": "sudo pacman -S --needed $ALL_UNIQUE_VALUES_JOIN_WHITESPACE"},
 				Declarations: map[string][]string{"pacman": {"nvim"}},
 				DryRun:       true,
 			},
@@ -58,21 +55,11 @@ func TestUseCase_ProcessPreFileHandlers(t *testing.T) {
 		{
 			name: "runner error",
 			cmd: port.ProcessHandlersCommand{
-				Handlers:     map[string]string{"pacman": "sudo pacman -S --needed $ALL_UNIQUE_VALUES_JOIN_WHITESPACE"},
 				Declarations: map[string][]string{"pacman": {"nvim"}},
 			},
 			runnerErr: errors.New("boom"),
 			wantCalls: []string{"sudo pacman -S --needed nvim"},
 			wantCodes: []port.ProcessDecisionCode{port.ProcessDecisionCodeFailed},
-		},
-		{
-			name: "skips missing handler and empty values",
-			cmd: port.ProcessHandlersCommand{
-				Handlers:     map[string]string{"pacman": "sudo pacman -S $ALL_UNIQUE_VALUES_JOIN_WHITESPACE"},
-				Declarations: map[string][]string{"aur": {"vscode"}},
-			},
-			wantCalls: nil,
-			wantCodes: nil,
 		},
 	}
 
@@ -99,10 +86,6 @@ func TestUseCase_ProcessPreFileHandlers(t *testing.T) {
 func TestUseCase_ProcessPostFileHandlers_PerValue(t *testing.T) {
 	runner := &fakeRunner{}
 	cmd := port.ProcessHandlersCommand{
-		Handlers: map[string]string{
-			"systemd":     "sudo systemctl enable $UNIQUE_SINGLE_VALUE",
-			"usersystemd": "systemctl --user enable $UNIQUE_SINGLE_VALUE",
-		},
 		Declarations: map[string][]string{
 			"systemd":     {"netd.service", "resolved.service"},
 			"usersystemd": {"ssh-agent.service"},

@@ -1,9 +1,8 @@
 package processhandlers
 
-// ProcessHandlersCommand carries handler templates and declared values.
+// ProcessHandlersCommand carries declared values and dry-run flag.
 type ProcessHandlersCommand struct {
-	// Handlers maps tool name -> command template.
-	Handlers map[string]string
+
 	// Declarations maps tool name -> declared values aggregated from modules.
 	Declarations map[string][]string
 	// DryRun prints commands instead of executing them.

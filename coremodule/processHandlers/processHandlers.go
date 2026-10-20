@@ -32,7 +32,8 @@ func (u *UseCase) ProcessPostFileHandlers(cmd port.ProcessHandlersCommand) port.
 func (u *UseCase) processTools(tools []string, cmd port.ProcessHandlersCommand) port.ProcessHandlersResult {
 	decisions := make([]port.ProcessDecision, 0)
 	for _, tool := range tools {
-		template, ok := cmd.Handlers[tool]
+		template, ok := defaultHandlers[tool]
+
 		if !ok {
 			continue
 		}

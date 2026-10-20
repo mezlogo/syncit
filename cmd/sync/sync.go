@@ -57,7 +57,7 @@ func New(
 			}
 
 			modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
-			mergedHandlers := map[string]string{}
+
 			for _, repo := range repos {
 				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
 					RepositoryPath: repo,
@@ -68,13 +68,6 @@ func New(
 				}
 				modules = append(modules, result.Modules...)
 
-				handlers, err := declarationPort.ParseHandlers(repo)
-				if err != nil {
-					return fmt.Errorf("parse handlers %q: %w", repo, err)
-				}
-				for k, v := range handlers {
-					mergedHandlers[k] = v
-				}
 			}
 
 			mergedDeclarations := map[string][]string{}
@@ -117,7 +110,7 @@ func New(
 			opts := syncfileconfiguration.SyncOptions{Overwrite: overwrite, Reset: reset}
 
 			processCmd := processhandlers.ProcessHandlersCommand{
-				Handlers:     mergedHandlers,
+
 				Declarations: mergedDeclarations,
 				DryRun:       dryRun,
 			}
