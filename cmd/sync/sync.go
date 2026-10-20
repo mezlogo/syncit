@@ -84,6 +84,29 @@ func New(
 				}
 			}
 
+			deduplicate := func(values []string) []string {
+				if len(values) == 0 {
+					return values
+				}
+				seen := make(map[string]struct{}, len(values))
+				result := make([]string, 0, len(values))
+				for _, value := range values {
+					value = strings.TrimSpace(value)
+					if value == "" {
+						continue
+					}
+					if _, ok := seen[value]; ok {
+						continue
+					}
+					seen[value] = struct{}{}
+					result = append(result, value)
+				}
+				return result
+			}
+			for _, tool := range []string{"pacman", "aur", "systemd", "usersystemd"} {
+				mergedDeclarations[tool] = deduplicate(mergedDeclarations[tool])
+			}
+
 			anyInclude := includeUser || includeRoot || includeProcess
 			processUser := includeUser || !anyInclude
 			processRoot := includeRoot || !anyInclude

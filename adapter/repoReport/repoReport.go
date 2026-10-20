@@ -79,6 +79,28 @@ func (a *Adapter) ReportRepo(repoPath string, modules []repoao.RepositoryDeclara
 	}
 }
 
+// ReportDeclarations reports aggregated tool declarations across all modules.
+func (a *Adapter) ReportDeclarations(repoPath string, declarations map[string][]string) {
+	pterm.DefaultSection.WithLevel(1).Println("declarations: " + repoPath)
+
+	if len(declarations) == 0 {
+		pterm.Println("{}")
+		return
+	}
+
+	keys := make([]string, 0, len(declarations))
+	for key := range declarations {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	rows := pterm.TableData{{"declaration", "values"}}
+	for _, key := range keys {
+		rows = append(rows, []string{key, strings.Join(declarations[key], ", ")})
+	}
+	_ = pterm.DefaultTable.WithHasHeader().WithData(rows).Render()
+}
+
 // ReportMergedRepo prints resolved files and the first merge error.
 func (a *Adapter) ReportMergedRepo(repoPath string, resolved mergeport.ResolvedFileConfiguration, mergeErr error) {
 	pterm.DefaultSection.WithLevel(1).Println("merged repository: " + repoPath)

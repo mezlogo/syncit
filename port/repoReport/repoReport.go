@@ -16,6 +16,9 @@ type RepoReportUseCase interface {
 	// Just report modules from repoAO
 	ReportRepo(repoPath string, modules []repoao.RepositoryDeclarationModule)
 
+	// ReportDeclarations reports aggregated tool declarations (pacman, aur, systemd, usersystemd, ...).
+	ReportDeclarations(repoPath string, declarations map[string][]string)
+
 	// ReportMergedRepo reports resolved file configuration and any merge error.
 	ReportMergedRepo(repoPath string, resolved mergefileconfiguration.ResolvedFileConfiguration, mergeErr error)
 

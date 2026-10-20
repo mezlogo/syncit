@@ -57,35 +57,60 @@ func New(
 				return errors.New("host is required: use --host or SYNCIT_HOST")
 			}
 
+			modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
+			mergedHandlers := map[string]string{}
+			modulesByRepo := make(map[string][]repositorydeclaration.RepositoryDeclarationModule, len(repos))
+			for _, repo := range repos {
+				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
+					RepositoryPath: repo,
+					HostName:       host,
+				})
+				if err != nil {
+					return fmt.Errorf("parse repository %q: %w", repo, err)
+				}
+				modules = append(modules, result.Modules...)
+				modulesByRepo[repo] = result.Modules
+
+				handlers, err := declarationPort.ParseHandlers(repo)
+				if err != nil {
+					return fmt.Errorf("parse handlers %q: %w", repo, err)
+				}
+				for k, v := range handlers {
+					mergedHandlers[k] = v
+				}
+			}
+
+			mergedDeclarations := map[string][]string{}
+			for _, m := range modules {
+				for k, vals := range m.Declarations {
+					mergedDeclarations[k] = append(mergedDeclarations[k], vals...)
+				}
+			}
+
+			deduplicate := func(values []string) []string {
+				if len(values) == 0 {
+					return values
+				}
+				seen := make(map[string]struct{}, len(values))
+				result := make([]string, 0, len(values))
+				for _, value := range values {
+					value = strings.TrimSpace(value)
+					if value == "" {
+						continue
+					}
+					if _, ok := seen[value]; ok {
+						continue
+					}
+					seen[value] = struct{}{}
+					result = append(result, value)
+				}
+				return result
+			}
+			for _, tool := range []string{"pacman", "aur", "systemd", "usersystemd"} {
+				mergedDeclarations[tool] = deduplicate(mergedDeclarations[tool])
+			}
+
 			if merged || diff || includeProcess {
-				modules := make([]repositorydeclaration.RepositoryDeclarationModule, 0)
-				mergedHandlers := map[string]string{}
-				for _, repo := range repos {
-					result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
-						RepositoryPath: repo,
-						HostName:       host,
-					})
-					if err != nil {
-						return fmt.Errorf("parse repository %q: %w", repo, err)
-					}
-					modules = append(modules, result.Modules...)
-
-					handlers, err := declarationPort.ParseHandlers(repo)
-					if err != nil {
-						return fmt.Errorf("parse handlers %q: %w", repo, err)
-					}
-					for k, v := range handlers {
-						mergedHandlers[k] = v
-					}
-				}
-
-				mergedDeclarations := map[string][]string{}
-				for _, m := range modules {
-					for k, vals := range m.Declarations {
-						mergedDeclarations[k] = append(mergedDeclarations[k], vals...)
-					}
-				}
-
 				anyInclude := includeUser || includeRoot || includeProcess
 				processUser := includeUser || !anyInclude
 				processRoot := includeRoot || !anyInclude
@@ -124,19 +149,15 @@ func New(
 					post := processPort.ProcessPostFileHandlers(processCmd)
 					reportPort.ReportProcess(strings.Join(repos, ", "), post.Decisions, nil)
 				}
+
+				reportPort.ReportDeclarations(strings.Join(repos, ", "), mergedDeclarations)
 				return nil
 			}
 
 			for _, repo := range repos {
-				result, err := declarationPort.ParseRepository(repositorydeclaration.RepositoryDeclarationCommand{
-					RepositoryPath: repo,
-					HostName:       host,
-				})
-				if err != nil {
-					return fmt.Errorf("parse repository %q: %w", repo, err)
-				}
-				reportPort.ReportRepo(repo, result.Modules)
+				reportPort.ReportRepo(repo, modulesByRepo[repo])
 			}
+			reportPort.ReportDeclarations(strings.Join(repos, ", "), mergedDeclarations)
 			return nil
 		},
 	}

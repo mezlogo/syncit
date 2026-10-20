@@ -1,0 +1,8 @@
+pacman:
+  - fzf
+  - upx
+systemd:
+  - sddm.service
+  - systemd-networkd.service
+usersystemd:
+  - ssh-agent.service
