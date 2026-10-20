@@ -124,7 +124,7 @@ func New(
 
 			if processHandlers {
 				pre := processPort.ProcessPreFileHandlers(processCmd)
-				reportPort.ReportProcess(strings.Join(repos, ", "), pre.Decisions, nil)
+				reportPort.ReportProcess(strings.Join(repos, ", "), pre.Decisions, mergeErr)
 			}
 			if processUser {
 				reportPort.ReportSync(strings.Join(repos, ", "),
@@ -136,7 +136,7 @@ func New(
 			}
 			if processHandlers {
 				post := processPort.ProcessPostFileHandlers(processCmd)
-				reportPort.ReportProcess(strings.Join(repos, ", "), post.Decisions, nil)
+				reportPort.ReportProcess(strings.Join(repos, ", "), post.Decisions, mergeErr)
 			}
 			return nil
 		},
