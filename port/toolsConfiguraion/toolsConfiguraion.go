@@ -24,6 +24,7 @@ func NewResolvedFileConfigurationMapping(root string, home string) ResolvedFileC
 		fileConfigurations: map[string]string{
 			"config": home + ".config/",
 			"local":  home + ".local/",
+			"bin":    home + ".local/bin/",
 			"ssh":    home + ".ssh/",
 			"home":   home,
 			"root":   root,
