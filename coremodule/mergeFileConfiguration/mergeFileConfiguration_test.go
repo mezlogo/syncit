@@ -28,6 +28,8 @@ func TestUseCase_MergeFiles(t *testing.T) {
 					RelativeFilePaths: []string{
 						"config/nvim/init.lua",
 						"ssh/config",
+						"bin/mytool",
+
 						"etc/systemd/network/20-wired.network",
 						"root/boot/loader.conf",
 					},
@@ -38,6 +40,11 @@ func TestUseCase_MergeFiles(t *testing.T) {
 					AbsoluteModuleFilePath: "/repo/modules/base/config/nvim/init.lua",
 					AbsoluteHostFilePath:   "/home/user/.config/nvim/init.lua",
 				},
+				{
+					AbsoluteModuleFilePath: "/repo/modules/base/bin/mytool",
+					AbsoluteHostFilePath:   "/home/user/.local/bin/mytool",
+				},
+
 				{
 					AbsoluteModuleFilePath: "/repo/modules/base/ssh/config",
 					AbsoluteHostFilePath:   "/home/user/.ssh/config",

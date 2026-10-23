@@ -2,6 +2,7 @@ package mergefileconfiguration
 
 import (
 	"path"
+	"strings"
 
 	mergeport "syncit/port/mergeFileConfiguration"
 	repoao "syncit/port/repoAO"
@@ -22,17 +23,24 @@ func resolveFile(module repoao.RepositoryDeclarationModule, relativeFilePath str
 		}
 	}
 
+	absoluteHostFilePath := path.Join(targetDir, rest)
+	homePath, _ := fileConfigurationMapping.Lookup("home")
+
 	return mergeport.ResolvedFile{
 		AbsoluteModuleFilePath: path.Join(module.ModuleAbsoulutePath, cleaned),
-		AbsoluteHostFilePath:   path.Join(targetDir, rest),
-	}, isUserConfiguration(topLevel), nil
+		AbsoluteHostFilePath:   absoluteHostFilePath,
+	}, isUserConfiguration(homePath, absoluteHostFilePath), nil
 }
 
-func isUserConfiguration(topLevel string) bool {
-	switch topLevel {
-	case "config", "local", "ssh", "home":
-		return true
-	default:
+func isUserConfiguration(homePath, filePath string) bool {
+	home := path.Clean(homePath)
+	file := path.Clean(filePath)
+
+	if home == "" || home == "." {
 		return false
 	}
+	if file == home {
+		return true
+	}
+	return strings.HasPrefix(file, home+"/")
 }
